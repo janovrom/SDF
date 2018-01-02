@@ -15,9 +15,11 @@ uniform int   u_NumModels;
 out vec3 v_Normal;
 out vec3 v_WorldPos;
 out vec4 v_Color;
+out vec4 v_ViewPos;
 
 void main(void) {
-	gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * a_Vertex;
+	v_ViewPos = u_ModelViewMatrix * a_Vertex;
+	gl_Position = u_ProjectionMatrix * v_ViewPos;
 	v_Normal = (vec4(a_Normal, 0.0)).xyz;
 	v_WorldPos = a_Vertex.xyz;
     v_Color     = u_Color;

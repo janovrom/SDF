@@ -399,7 +399,7 @@ int common_main(int window_width, int window_height, const char* window_title,
                 ModelView = glm::rotate(ModelView, Variables::Shader::SceneRotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
 #endif
                 ModelViewInverse = glm::inverse(ModelView);
-                Projection = glm::perspective(60.0f, float(Variables::WindowSize.x)/Variables::WindowSize.y, 0.1f, 1000.0f);
+                Projection = glm::perspective(60.0f, float(Variables::WindowSize.x)/Variables::WindowSize.y, 1.0f, 1000.0f);
                 ModelViewProjection = Projection * ModelView;
                 for (size_t i = 0; i < OpenGL::programs.size(); i++) {
                     const OpenGL::Program& program = OpenGL::programs[i];
@@ -420,6 +420,10 @@ int common_main(int window_width, int window_height, const char* window_title,
                         glUniform1f(program.UserVariableFloat, Variables::Shader::Float);
                     if (program.FrameCounter > -1) 
                         glUniform1i(program.FrameCounter, Statistic::Frame::ID);
+					if (program.Near > -1)
+						glUniform1f(program.Near, 1.0f);
+					if (program.Far > -1)
+						glUniform1f(program.Far, 1000.0f);
                 }
             }
             glUseProgram(current_program);

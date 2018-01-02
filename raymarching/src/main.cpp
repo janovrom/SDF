@@ -47,14 +47,14 @@ void DSGeometryPass()
 	// Clear frame buffer and set OpenGL states
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	printOpenGLError();
-
+	  
 	glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
 	printOpenGLError();
-
-	// Update shader program
-	glUseProgram(g_Program);
-	glUniform1i(glGetUniformLocation(g_Program, "u_NumModels"), 1);
-	printOpenGLError();
+	 
+	// Update shader program  
+	glUseProgram(g_Program); 
+	glUniform1i(glGetUniformLocation(g_Program, "u_NumModels"), 1); 
+	printOpenGLError();  
 
 	// Specify model geometry and send it to GPU
 	glBindVertexArray(g_ModelVAO);
@@ -63,16 +63,26 @@ void DSGeometryPass()
 	glUniform4fv(glGetUniformLocation(g_Program, "u_Color"), 1, &g_Color.x);
 	//glUniform3f(glGetUniformLocation(g_Program, "u_Translate"), 1.0f - g_NumModels + 2.0f*iColumn, 0.0f, 1.0f - g_NumModels + 2.0f*iRow);
 	glDrawArrays(GL_TRIANGLES, 0, Tools::Mesh::NUM_ELEPHANT_INDICES);
-	printOpenGLError(); 
-
-	glBindVertexArray(0); 
-	glUseProgram(0); 
+	printOpenGLError();   
+	 
+	glBindVertexArray(0);  
+	glUseProgram(0);  
 	printOpenGLError();
-
+	   
 	// Draw screen quad for raymarching 
-	glUseProgram(g_RaymarchingProgram);
+	//glDisable(GL_DEPTH_TEST); 
+	//glDepthMask(GL_FALSE);   
+	glUseProgram(g_RaymarchingProgram); 
+	//m_gbuffer.BindForRead();   
+	glActiveTexture(GL_TEXTURE0);  
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture(  ));
+	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
 	Tools::DrawScreenQuad();
-	glUseProgram(0);
+	glBindTexture(GL_TEXTURE_2D,  0);  
+	glUseProgram(0);  
+	//glEnable(GL_DEPTH_TEST);
+	//glDepthMask(GL_TRUE);   
+
 }
 
 void DSLightPass()
@@ -100,14 +110,15 @@ void DSLightPass()
 	printOpenGLError();
 
 	m_gbuffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL);
-	printOpenGLError();
+	printOpenGLError(); 
 	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
 		HalfWidth, HalfHeight, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	printOpenGLError();
+	  
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
 	Tools::Texture::Show2DTexture(m_gbuffer.GetDepthTexture(), HalfWidth, 0, HalfWidth, HalfHeight);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	printOpenGLError();
+	glBindTexture(GL_TEXTURE_2D, 0);  
+	//printOpenGLError();
 	//glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
 	//	HalfWidth, 0, WINDOW_WIDTH, HalfHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	printOpenGLError();
@@ -134,10 +145,12 @@ void initGL()
 	m_gbuffer.Init(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	// Set default camera's distance from the scene
-	Variables::Shader::SceneZOffset = 26.0f;
+	Variables::Shader::SceneZOffset = 16.0f;
 
 	// Set OpenGL state variables 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	// Enable depth test
+	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND); //Enable blending.
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //Set blending function.

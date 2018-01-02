@@ -65,14 +65,16 @@ namespace OpenGL {
 
     struct Program {
         Program(GLuint _id) : id(_id) {
-            MVPMatrix          = glGetUniformLocation(id, "u_MVPMatrix");
-            ModelViewMatrix    = glGetUniformLocation(id, "u_ModelViewMatrix");
-            ModelViewMatrixInv = glGetUniformLocation(id, "u_ModelViewMatrixInverse");
-            ProjectionMatrix   = glGetUniformLocation(id, "u_ProjectionMatrix");
-            ZOffset            = glGetUniformLocation(id, "u_ZOffset");
-            UserVariableInt    = glGetUniformLocation(id, "u_UserVariableInt");
-            UserVariableFloat  = glGetUniformLocation(id, "u_UserVariableFloat");
-            FrameCounter       = glGetUniformLocation(id, "u_FrameCounter");
+            MVPMatrix			= glGetUniformLocation(id, "u_MVPMatrix");
+            ModelViewMatrix		= glGetUniformLocation(id, "u_ModelViewMatrix");
+            ModelViewMatrixInv	= glGetUniformLocation(id, "u_ModelViewMatrixInverse");
+            ProjectionMatrix	= glGetUniformLocation(id, "u_ProjectionMatrix");
+            ZOffset				= glGetUniformLocation(id, "u_ZOffset");
+            UserVariableInt		= glGetUniformLocation(id, "u_UserVariableInt");
+            UserVariableFloat	= glGetUniformLocation(id, "u_UserVariableFloat");
+            FrameCounter		= glGetUniformLocation(id, "u_FrameCounter");
+			Near				= glGetUniformLocation(id, "u_Near");
+			Far					= glGetUniformLocation(id, "u_Far");
         }
         bool hasMVMatrix() const {
             return (MVPMatrix > -1) || (ModelViewMatrix > -1) || (ModelViewMatrixInv > -1);
@@ -89,6 +91,8 @@ namespace OpenGL {
         GLint  UserVariableInt;
         GLint  UserVariableFloat;
         GLint  FrameCounter;
+		GLint	Near;
+		GLint	Far;
     };
     std::vector<Program> programs;
 

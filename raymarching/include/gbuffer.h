@@ -12,7 +12,7 @@ public:
 		GBUFFER_TEXTURE_TYPE_POSITION,
 		GBUFFER_TEXTURE_TYPE_COLOR,
 		GBUFFER_TEXTURE_TYPE_NORMAL,
-		GBUFFER_NUM_TEXTURES,
+		GBUFFER_NUM_TEXTURES
 	};
 
 	GBuffer();
@@ -26,6 +26,11 @@ public:
 	GLuint GetDepthTexture()
 	{
 		return m_depthTexture;
+	}
+
+	GLuint GetTexture(GBUFFER_TEXTURE_TYPE TextureType)
+	{
+		return m_textures[TextureType];
 	}
 
 private:
