@@ -21,6 +21,12 @@
     <ClCompile Include="src\gbuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glerror.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\fragment.fs">
@@ -35,9 +41,21 @@
     <None Include="res\raymarching.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\scene.transform">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\gbuffer.h">
+    <ClInclude Include="src\gbuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glerror.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

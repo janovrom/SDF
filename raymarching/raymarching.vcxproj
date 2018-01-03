@@ -78,6 +78,7 @@
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
     <IncludePath>$(ProjectDir)include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)include;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -90,6 +91,7 @@
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
     <IncludePath>$(ProjectDir)include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)include;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -105,7 +107,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)common\AntTweakBar;$(SolutionDir)common\GLEW;$(SolutionDir)common\GLFW;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;glfw3.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;opengl32.lib;glu32.lib;glfw3.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(SolutionDir)bin\$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PreBuildEvent>
@@ -154,7 +156,7 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)common\AntTweakBar;$(SolutionDir)common\GLEW;$(SolutionDir)common\GLFW;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;glfw3.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;opengl32.lib;glu32.lib;glfw3.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(SolutionDir)bin\$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PreBuildEvent>
@@ -194,7 +196,9 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\gbuffer.cpp" />
+    <ClCompile Include="src\glerror.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\fragment.fs">
@@ -211,6 +215,7 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
       <DeploymentContent>false</DeploymentContent>
       <FileType>CppCode</FileType>
     </None>
+    <None Include="res\scene.transform" />
     <None Include="res\vertex.vs">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
@@ -218,7 +223,10 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\gbuffer.h" />
+    <ClInclude Include="src\gbuffer.h" />
+    <ClInclude Include="src\glerror.h" />
+    <ClInclude Include="src\mesh.h" />
+    <ClInclude Include="src\scene.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

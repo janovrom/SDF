@@ -293,6 +293,8 @@ int common_main(int window_width, int window_height, const char* window_title,
     // Enable OGL debug 
     if (bDebugOutput && glfwExtensionSupported("GL_ARB_debug_output")) {
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(Callbacks::PrintOGLDebugLog, NULL);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
     }

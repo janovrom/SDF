@@ -1,5 +1,6 @@
-#include "../include/gbuffer.h"
+#include "gbuffer.h"
 #include <stdio.h>
+#include "glerror.h"
 
 bool GBuffer::Init(unsigned int windowWidth, unsigned int windowHeight)
 {
@@ -46,6 +47,7 @@ bool GBuffer::Init(unsigned int windowWidth, unsigned int windowHeight)
 void GBuffer::BindForWrite()
 {
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+	printOpenGLError();
 }
 
 void GBuffer::BindForRead()

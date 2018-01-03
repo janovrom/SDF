@@ -4,6 +4,7 @@
 #include "../../common/GLEW/wglew.h"
 #include "../../common/GLFW/glfw3.h"
 
+
 class GBuffer
 {
 public:

@@ -2,7 +2,9 @@
 #include "../../common/common.h"
 #include "../../common/models/elephant.h"
 #include "../../common/models/screenquad.h"
-#include "../include/gbuffer.h"
+#include "gbuffer.h"
+#include "scene.h"
+#include "glerror.h"
 
 const unsigned int WINDOW_WIDTH		= 800;
 const unsigned int WINDOW_HEIGHT	= 600;
@@ -16,27 +18,6 @@ glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
 
 double		g_Time;
-
-
-//#define printOpenGLError() printOglError(__FILE__, __LINE__)
-#define printOpenGLError() 
-
-int printOglError(char *file, int line)
-{
-
-	GLenum glErr;
-	int    retCode = 0;
-
-	glErr = glGetError();
-	if (glErr != GL_NO_ERROR)
-	{
-		printf("glError %u in file %s @ line %d: %s\n", glErr,
-			file, line, gluErrorString(glErr));
-		retCode = 1;
-	}
-	return retCode;
-}
-
  
 void updateUserData()
 {
@@ -56,19 +37,7 @@ void DSGeometryPass()
 	 
 	// Update shader program  
 	glUseProgram(g_Program); 
-	glUniform1i(glGetUniformLocation(g_Program, "u_NumModels"), 1); 
-	printOpenGLError();  
-
-	// Specify model geometry and send it to GPU
-	glBindVertexArray(g_ModelVAO);
-	// TODO: Replace by instance rendering - use one OGL call glDrawArraysInstanced (instead of many glDrawArrays)
-	//       to render many models. Update vertex shader to calculate location (translation) and color of every model.
-	glUniform4fv(glGetUniformLocation(g_Program, "u_Color"), 1, &g_Color.x);
-	//glUniform3f(glGetUniformLocation(g_Program, "u_Translate"), 1.0f - g_NumModels + 2.0f*iColumn, 0.0f, 1.0f - g_NumModels + 2.0f*iRow);
-	glDrawArrays(GL_TRIANGLES, 0, Tools::Mesh::NUM_ELEPHANT_INDICES);
-	printOpenGLError();    
-	 
-	glBindVertexArray(0);  
+	RenderSceneGeometry(g_Program);
 	glUseProgram(0);  
 	printOpenGLError();
 	   
@@ -175,6 +144,9 @@ void initGL()
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+	 
+	// Load scene objects
+	LoadScene();
 
 	g_Time = glfwGetTime(); // in seconds
 }

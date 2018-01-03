@@ -274,10 +274,10 @@ float smin(float a, float b, float k)
 
 float opDisplaceGround(vec3 p)
 {
-	p += cnoise(p.xz / 128.0)*8.0;
-	p += cnoise(p.xz / 256.0)*16.0;
-	p += cnoise(p.xz * 16.0) / 64.0;
-	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 2.0));
+	//p += cnoise(p.xz / 128.0)*8.0;
+	//p += cnoise(p.xz / 256.0)*16.0;
+	//p += cnoise(p.xz * 16.0) / 64.0;
+	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 200.0));
 	float maxDist = 128.0;
 	float total = 0;
 	float frequency = 1;
@@ -329,7 +329,7 @@ vec2 map(vec3 p)
 	//vec2 hp = vec2(opRepHexPrisms(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
 	vec2 hp = vec2(opDisplaceGround(p), 17.32);
 	res = opUn(res, hp);
-	return res;
+	return hp;
 }
 
 vec3 normal(vec3 p, float precis)
