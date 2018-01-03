@@ -15,8 +15,11 @@ GLuint		g_ModelVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
 
+double		g_Time;
 
-#define printOpenGLError() printOglError(__FILE__, __LINE__)
+
+//#define printOpenGLError() printOglError(__FILE__, __LINE__)
+#define printOpenGLError() 
 
 int printOglError(char *file, int line)
 {
@@ -34,7 +37,7 @@ int printOglError(char *file, int line)
 	return retCode;
 }
 
-
+ 
 void updateUserData()
 {
 }
@@ -63,7 +66,7 @@ void DSGeometryPass()
 	glUniform4fv(glGetUniformLocation(g_Program, "u_Color"), 1, &g_Color.x);
 	//glUniform3f(glGetUniformLocation(g_Program, "u_Translate"), 1.0f - g_NumModels + 2.0f*iColumn, 0.0f, 1.0f - g_NumModels + 2.0f*iRow);
 	glDrawArrays(GL_TRIANGLES, 0, Tools::Mesh::NUM_ELEPHANT_INDICES);
-	printOpenGLError();   
+	printOpenGLError();    
 	 
 	glBindVertexArray(0);  
 	glUseProgram(0);  
@@ -77,7 +80,8 @@ void DSGeometryPass()
 	glActiveTexture(GL_TEXTURE0);  
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture(  ));
 	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
-	Tools::DrawScreenQuad();
+	glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
+	Tools::DrawScreenQuad(); 
 	glBindTexture(GL_TEXTURE_2D,  0);  
 	glUseProgram(0);  
 	//glEnable(GL_DEPTH_TEST);
@@ -137,6 +141,7 @@ void display()
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	printOpenGLError();
+	g_Time = glfwGetTime() - g_Time;
 }
 
 void initGL()
@@ -170,6 +175,8 @@ void initGL()
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	g_Time = glfwGetTime(); // in seconds
 }
 
 void TW_CALL compileShaders(void *clientData)
