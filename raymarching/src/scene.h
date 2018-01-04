@@ -30,7 +30,9 @@ void LoadScene()
 		tin >> count;
 		for (unsigned int j = 0; j < count; ++j)
 		{
-			glm::mat4x4 transform(1.0);
+			glm::mat4x4 t(1.0);
+			glm::mat4x4 s(1.0);
+			glm::mat4x4 r(1.0);
 			float angle;
 			glm::vec3 rot;
 			glm::vec3 scale;
@@ -38,10 +40,10 @@ void LoadScene()
 			tin >> rot.x >> rot.y >> rot.z >> angle;
 			tin >> scale.x >> scale.y >> scale.z;
 			tin >> trans.x >> trans.y >> trans.z;
-			//transform = glm::rotate(transform, angle, rot);
-			//transform = glm::scale(transform, scale);
-			transform = glm::translate(transform, trans);
-			Objects[i].AddTransformation(transform);
+			r = glm::rotate(r, angle, rot);
+			s = glm::scale(s, scale);
+			t = glm::translate(t, trans);
+			Objects[i].AddTransformation(t * r * s);
 		}
 	}
 	tin.close();
