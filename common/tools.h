@@ -76,6 +76,7 @@ namespace OpenGL {
 			Near				= glGetUniformLocation(id, "u_Near");
 			Far					= glGetUniformLocation(id, "u_Far");
 			EyeDir				= glGetUniformLocation(id, "u_EyeDirWorld");
+			EyePos				= glGetUniformLocation(id, "u_EyePosWorld");
         }
         bool hasMVMatrix() const {
             return (MVPMatrix > -1) || (ModelViewMatrix > -1) || (ModelViewMatrixInv > -1);
@@ -95,6 +96,7 @@ namespace OpenGL {
 		GLint	Near;
 		GLint	Far;
 		GLint	EyeDir;
+		GLint	EyePos;
     };
     std::vector<Program> programs;
 

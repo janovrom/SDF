@@ -2,10 +2,15 @@
 #include "mesh.h"
 #include <iostream>
 #include "../../common/glm/gtc/matrix_transform.hpp"
+#include "lights.h"
 
 #define NUM_FILES 7
 
+
 Mesh Objects[NUM_FILES];
+GLuint PLights[NUM_POINT_LIGHTS];
+float PLightsRadii[NUM_POINT_LIGHTS];
+
 
 std::string files[NUM_FILES] =
 {
@@ -18,11 +23,12 @@ std::string files[NUM_FILES] =
 	DIR + "7.obj"
 };
 
+
 void LoadScene()
 {
+	// Load meshes
 	std::ifstream tin;
 	tin.open("scene.transform");
-	std::string empty;
 	for (unsigned int i = 0; i < NUM_FILES; ++i)
 	{
 		Objects[i].LoadMesh(files[i]);
@@ -45,6 +51,27 @@ void LoadScene()
 			t = glm::translate(t, trans);
 			Objects[i].AddTransformation(t * r * s);
 		}
+	}
+	tin.close();
+
+	// Load lights
+	tin.open("scene.lights"); // First are all point lights, then directional lights
+	// Generate buffers for lights
+	glGenBuffers(NUM_POINT_LIGHTS, &PLights[0]);
+
+	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	{
+		int type;
+		tin >> type;
+		PointLight p;
+		tin >> p.light.color.x >> p.light.color.y >> p.light.color.z;
+		tin >> p.light.ambientIntensity >> p.light.diffuseIntensity;
+		tin >> p.attenuation.constant >> p.attenuation.linear >> p.attenuation.exp;
+		tin >> p.pos.x >> p.pos.y >> p.pos.z;
+		p.radius = CalcPLightBSphere(p);
+		glBindBuffer(GL_UNIFORM_BUFFER, PLights[i]);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight), (void*)&p, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 	tin.close();
 }

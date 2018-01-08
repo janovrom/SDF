@@ -16,7 +16,7 @@ uniform vec3 u_EyeDirWorld;
 layout(location = 0) out vec3 WorldPosOut;
 layout(location = 1) out vec3 DiffuseOut;
 layout(location = 2) out vec3 NormalOut;
-layout(location = 3) out vec3 DepthOut;
+//layout(location = 3) out vec3 DepthOut;
 
 
 // Noise
@@ -327,7 +327,8 @@ vec2 map(vec3 p)
 	//vec2 hp = vec2(opMapHexPrims(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
 	//vec2 hp = vec2(opRepBoxes(p, vec3(1.0)), 7.6);
 	//vec2 hp = vec2(opRepHexPrisms(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
-	vec2 hp = vec2(opDisplaceGround(p), 17.32);
+	//vec2 hp = vec2(opDisplaceGround(p), 17.32);
+	vec2 hp = vec2(sdPlane(p, vec4(0.0, 1.0, 0.0, 0.0)), 17.32);
 	res = opUn(res, hp);
 	return hp;
 }
@@ -373,7 +374,8 @@ int raymarch(vec3 ro, vec3 rd)
 		if (d.x < precis)
 		{
 			vec3 n = normal(p, t);
-			vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
+			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
+			vec3 col = vec3(0.76, 0.7, 0.5);
 			WorldPosOut = p;
 			DiffuseOut = col;
 			NormalOut = n;

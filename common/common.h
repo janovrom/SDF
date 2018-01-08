@@ -403,8 +403,12 @@ int common_main(int window_width, int window_height, const char* window_title,
                 ModelViewInverse = glm::inverse(ModelView);
                 Projection = glm::perspective(60.0f, float(Variables::WindowSize.x)/Variables::WindowSize.y, 0.1f, 1000.0f);
                 ModelViewProjection = Projection * ModelView;
-				// Get eye position
+				// Get eye direction
 				glm::vec3 eye = glm::normalize(-glm::vec3(-ModelView[0][2], -ModelView[1][2], -ModelView[2][2]));
+				glm::mat3x3 rotMat(ModelView);
+				glm::vec3 d(ModelView[3]);
+				glm::vec3 eyePos = -d * rotMat;
+				//printf("Eye pos %f, %f, %f\n", eyePos.x, eyePos.y, eyePos.z);
     
 				for (size_t i = 0; i < OpenGL::programs.size(); i++) {
                     const OpenGL::Program& program = OpenGL::programs[i];
@@ -431,6 +435,8 @@ int common_main(int window_width, int window_height, const char* window_title,
 						glUniform1f(program.Far, 1000.0f);
 					if (program.EyeDir > -1)
 						glUniform3fv(program.EyeDir, 1, &eye.x);
+					if (program.EyePos > -1)
+						glUniform3fv(program.EyePos, 1, &eyePos.x);
                 }
             }
             glUseProgram(current_program);

@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "glerror.h"
+#include "tga.h"
 
 
 char* ReadFile(const char* file_name, size_t* bytes_read = 0)
@@ -39,13 +40,14 @@ GLuint LoadRGB8(const char* filename, GLsizei* num_texels = NULL)
 	//std::vector<char> buffer((
 	//	std::istreambuf_iterator<char>(input)),
 	//	(std::istreambuf_iterator<char>()));
-	//const char* rgb_data = buffer.data();//ReadFile(filename, &bytes_read);
+	//const char* rgb_data = buffer.data();
+	//bytes_read = buffer.size() + 1;
 	const char* rgb_data = ReadFile(filename, &bytes_read);
 	if (rgb_data == NULL)
 		return 0;
 
-	const GLsizei width = static_cast<GLsizei>(sqrtf(bytes_read / 3.0f));
-	assert(width*width * 3 == bytes_read);
+	const GLsizei width = static_cast<GLsizei>(sqrtf(bytes_read / 4.0f));
+	assert(width*width * 4 == bytes_read);
 
 	GLuint texId = 0;
 	glGenTextures(1, &texId);
@@ -54,7 +56,7 @@ GLuint LoadRGB8(const char* filename, GLsizei* num_texels = NULL)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, width, GL_RGB, GL_UNSIGNED_BYTE, rgb_data);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, width, GL_RGBA, GL_UNSIGNED_BYTE, rgb_data);
 
 	delete[] rgb_data;
 
@@ -221,7 +223,21 @@ bool Mesh::InitMaterials(const aiScene* pScene, const std::string& filename)
 			if (pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
 				std::string fullPath = DIR + path.data;
-				m_Textures[i] = LoadRGB8(fullPath.c_str());
+				//m_Textures[i] = ilutGLLoadImage((wchar_t*) &fullPath[0]);
+				//m_Textures[i] = LoadRGB8(fullPath.c_str());
+				Tga info = Tga(fullPath.c_str());
+
+				GLuint texture = 0;
+				glGenTextures(1, &texture);
+				glBindTexture(GL_TEXTURE_2D, texture);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				gluBuild2DMipmaps(GL_TEXTURE_2D, info.HasAlphaChannel() ? GL_RGBA : GL_RGB, info.GetWidth(), info.GetHeight(), info.HasAlphaChannel() ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, info.GetPixels().data());
+
+				m_Textures[i] = texture;
+				//m_Textures[i] = SOIL_load_OGL_texture(fullPath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 			}
 		}
 	}

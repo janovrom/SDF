@@ -5,6 +5,7 @@
 #include "../../common/assimp/scene.h"
 #include "../../common/glm/glm.hpp"
 #include "../../common/GLEW/glew.h"
+#include "../../common/GLFW/glfw3.h"
 #include <vector>
 #include <fstream>
 

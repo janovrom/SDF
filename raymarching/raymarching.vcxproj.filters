@@ -27,6 +27,9 @@
     <ClCompile Include="src\glerror.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\tga.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\fragment.fs">
@@ -44,6 +47,15 @@
     <None Include="res\scene.transform">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\light-pass.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\pointlight-pass.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\scene.lights">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gbuffer.h">
@@ -56,6 +68,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\glerror.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lights.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tga.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
