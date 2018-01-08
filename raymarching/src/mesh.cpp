@@ -1,70 +1,6 @@
 #include "mesh.h"
 #include "glerror.h"
-#include "tga.h"
 
-
-char* ReadFile(const char* file_name, size_t* bytes_read = 0)
-{
-	char* buffer = NULL;
-
-	// Read input file
-	if (file_name != NULL)
-	{
-		FILE* fin = fopen(file_name, "rb");
-		if (fin != NULL)
-		{
-			fseek(fin, 0, SEEK_END);
-			long file_size = ftell(fin);
-			rewind(fin);
-
-			if (file_size > 0)
-			{
-				buffer = new char[file_size + 1];
-				size_t count = fread(buffer, sizeof(char), file_size, fin);
-				buffer[count] = '\0';
-				if (bytes_read) *bytes_read = count;
-			}
-			fclose(fin);
-		}
-	}
-
-	return buffer;
-}
-
-GLuint LoadRGB8(const char* filename, GLsizei* num_texels = NULL)
-{
-	// Create mipmapped texture from raw file
-	size_t bytes_read = 0;
-	//std::ifstream input(filename, std::ios::binary);
-	//// copies all data into buffer
-	//std::vector<char> buffer((
-	//	std::istreambuf_iterator<char>(input)),
-	//	(std::istreambuf_iterator<char>()));
-	//const char* rgb_data = buffer.data();
-	//bytes_read = buffer.size() + 1;
-	const char* rgb_data = ReadFile(filename, &bytes_read);
-	if (rgb_data == NULL)
-		return 0;
-
-	const GLsizei width = static_cast<GLsizei>(sqrtf(bytes_read / 4.0f));
-	assert(width*width * 4 == bytes_read);
-
-	GLuint texId = 0;
-	glGenTextures(1, &texId);
-	glBindTexture(GL_TEXTURE_2D, texId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, width, GL_RGBA, GL_UNSIGNED_BYTE, rgb_data);
-
-	delete[] rgb_data;
-
-	if (num_texels)
-		*num_texels = width*width;
-
-	return texId;
-}
 
 bool Mesh::LoadMesh(const std::string& Filename)
 {
@@ -213,33 +149,8 @@ bool Mesh::InitMaterials(const aiScene* pScene, const std::string& filename)
 	for (unsigned int i = 0; i < pScene->mNumMaterials; ++i)
 	{
 		const aiMaterial* pMaterial = pScene->mMaterials[i];
-		
-		m_Textures[i] = 0;
-		// Just use the texture as is
-		if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
-		{
-			aiString path;
 
-			if (pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-			{
-				std::string fullPath = DIR + path.data;
-				//m_Textures[i] = ilutGLLoadImage((wchar_t*) &fullPath[0]);
-				//m_Textures[i] = LoadRGB8(fullPath.c_str());
-				Tga info = Tga(fullPath.c_str());
-
-				GLuint texture = 0;
-				glGenTextures(1, &texture);
-				glBindTexture(GL_TEXTURE_2D, texture);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-				gluBuild2DMipmaps(GL_TEXTURE_2D, info.HasAlphaChannel() ? GL_RGBA : GL_RGB, info.GetWidth(), info.GetHeight(), info.HasAlphaChannel() ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, info.GetPixels().data());
-
-				m_Textures[i] = texture;
-				//m_Textures[i] = SOIL_load_OGL_texture(fullPath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-			}
-		}
+		m_Textures[i].InitTexture(pMaterial);
 	}
 
 	return true;
@@ -264,16 +175,8 @@ void Mesh::Render(GLuint program)
 			// Did I get myself enough textures?
 			assert(MatIdx < m_Textures.size());
 
-			if (m_Textures[MatIdx])
-			{
-				glActiveTexture(GL_TEXTURE0);
-				printOpenGLError();
-				glUniform1i(glGetUniformLocation(program, "u_Tex"), 0);
-				printOpenGLError();
-				glBindTexture(GL_TEXTURE_2D, m_Textures[MatIdx]);
-				printOpenGLError();
-
-			}
+			m_Textures[MatIdx].BindForGeometryPass(program);
+			printOpenGLError();
 			glUniformMatrix4fv(glGetUniformLocation(program, "u_Model"), 1, GL_FALSE, &m_ModelMatrices[t][0][0]);
 			glUniformMatrix4fv(glGetUniformLocation(program, "u_Normal"), 1, GL_FALSE, &m_NormalMatrices[t][0][0]);
 			glDrawElementsBaseVertex(GL_TRIANGLES,
@@ -304,6 +207,8 @@ Mesh::~Mesh()
 
 void Mesh::Clear()
 {
+	m_Entries.clear();
+	m_Textures.clear();
 	glDeleteBuffers(MESH_NUM_BUFFERS, m_Buffers);
 	glDeleteVertexArrays(1, &m_VAO);
 	m_VAO = 0;

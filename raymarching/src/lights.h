@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __LIGHTS_H__
+#define __LIGHTS_H__
+
 #include "../../common/glm/glm.hpp"
 
 #define NUM_POINT_LIGHTS		2
@@ -39,3 +43,5 @@ inline float CalcPLightBSphere(const PointLight& light)
 		/ (2 * light.attenuation.exp);
 	return ret;
 }
+
+#endif // !__LIGHTS_H__

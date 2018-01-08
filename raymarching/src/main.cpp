@@ -81,22 +81,22 @@ void BeginLightPasses()
 void DSPointLightPass()
 {
 	glUseProgram(g_PointLightProgram);
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
+	printOpenGLError();
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
+	printOpenGLError();
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
 	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{
 		/*glUniform1f(glGetUniformLocation(g_PointLightProgram, "u_Radius"), PLightsRadii[i]);
 		printOpenGLError();
 		glUniform3fv(glGetUniformLocation(g_PointLightProgram, "u_Center"), 1, &PLights[i].pos.x);
 		printOpenGLError();*/
-		glActiveTexture(GL_TEXTURE0 + 0);
-		glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
 		glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_PosTex"), 0);
-		printOpenGLError();
-		glActiveTexture(GL_TEXTURE0 + 1);
-		glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 		glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_ColTex"), 1);
-		printOpenGLError();
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
 		glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_NormTex"), 2);
 		printOpenGLError();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[i]);

@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __SCENE_H__
+#define __SCENE_H__
+
 #include "mesh.h"
 #include <iostream>
 #include "../../common/glm/gtc/matrix_transform.hpp"
@@ -32,7 +36,7 @@ void LoadScene()
 	for (unsigned int i = 0; i < NUM_FILES; ++i)
 	{
 		Objects[i].LoadMesh(files[i]);
-		int count;
+		unsigned int count;
 		tin >> count;
 		for (unsigned int j = 0; j < count; ++j)
 		{
@@ -83,3 +87,5 @@ void RenderSceneGeometry(GLuint program)
 		Objects[i].Render(program);
 	}
 }
+
+#endif // !__SCENE_H__

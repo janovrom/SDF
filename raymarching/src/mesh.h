@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef __MESH_H__
+#define __MESH_H__
+
 #include "../../common/assimp/Importer.hpp"
 #include "../../common/assimp/postprocess.h"
 #include "../../common/assimp/scene.h"
@@ -8,12 +11,11 @@
 #include "../../common/GLFW/glfw3.h"
 #include <vector>
 #include <fstream>
+#include "texture.h"
 
 
 #define gvec33(aivec3) glm::vec3(aivec3->x, aivec3->y, aivec3->z)
 #define gvec32(aivec3) glm::vec2(aivec3->x, aivec3->y)
-
-const std::string DIR = "../obj/";
 
 class Mesh
 {
@@ -59,7 +61,9 @@ private:
 	GLuint m_Buffers[MESH_NUM_BUFFERS];
 
 	std::vector<MeshEntry> m_Entries;
-	std::vector<GLuint> m_Textures;
+	std::vector<Texture> m_Textures;
 	std::vector<glm::mat4x4> m_ModelMatrices;
 	std::vector<glm::mat4x4> m_NormalMatrices;
 };
+
+#endif // !__MESH_H__

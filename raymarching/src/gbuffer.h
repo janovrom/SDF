@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef __GBUFFER_H__
+#define __GBUFFER_H__
+
 #include "../../common/GLEW/glew.h"
 #include "../../common/GLEW/wglew.h"
 #include "../../common/GLFW/glfw3.h"
@@ -39,3 +42,5 @@ private:
 	GLuint m_textures[GBUFFER_NUM_TEXTURES];
 	GLuint m_depthTexture = -1;
 };
+
+#endif // !__GBUFFER_H__

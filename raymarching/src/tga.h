@@ -1,4 +1,7 @@
 #pragma once
+///
+/// Courtesy of Brandon froum stackoverflow - https://stackoverflow.com/users/1462718/brandon
+///
 
 #ifndef __TGA_H__
 #define __TGA_H__
