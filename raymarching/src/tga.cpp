@@ -61,9 +61,9 @@ Tga::Tga(const char* FilePath)
 				{
 					hFile.read(reinterpret_cast<char*>(&Pixel), BytesPerPixel);
 
-					ImageData[CurrentByte++] = Pixel.B;
-					ImageData[CurrentByte++] = Pixel.G;
 					ImageData[CurrentByte++] = Pixel.R;
+					ImageData[CurrentByte++] = Pixel.G;
+					ImageData[CurrentByte++] = Pixel.B;
 					if (BitsPerPixel > 24) ImageData[CurrentByte++] = Pixel.A;
 				}
 			}
@@ -74,9 +74,9 @@ Tga::Tga(const char* FilePath)
 
 				for (int I = 0; I < ChunkHeader; ++I, ++CurrentPixel)
 				{
-					ImageData[CurrentByte++] = Pixel.B;
-					ImageData[CurrentByte++] = Pixel.G;
 					ImageData[CurrentByte++] = Pixel.R;
+					ImageData[CurrentByte++] = Pixel.G;
+					ImageData[CurrentByte++] = Pixel.B;
 					if (BitsPerPixel > 24) ImageData[CurrentByte++] = Pixel.A;
 				}
 			}

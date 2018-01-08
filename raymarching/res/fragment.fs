@@ -15,7 +15,7 @@ void main() {
 	float wc = (u_MVPMatrix * vec4(v_WorldPos, 1.0)).w;
 	float depthP = zc / wc;
 	gl_FragDepth = depthP;*/
-	DiffuseOut = texture(u_Tex, v_UV).rgba;
+	DiffuseOut = texture(u_Tex, v_UV).bgra;
 	if (DiffuseOut.a < 0.1)
 		discard;
 	WorldPosOut = vec4(v_WorldPos, 1.0);
