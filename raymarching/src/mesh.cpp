@@ -18,15 +18,17 @@ bool Mesh::LoadMesh(const std::string& Filename)
 	const aiScene* pScene = Importer.ReadFile(Filename,
 		(unsigned int) (aiProcess_GenSmoothNormals
 		| aiProcess_JoinIdenticalVertices
-		| aiProcess_Triangulate)
+		| aiProcess_Triangulate
+		| aiProcess_CalcTangentSpace
 
 		// TODO Subject to test
 		// additional optimization
-		//| aiProcess_ImproveCacheLocality
-		//| aiProcess_OptimizeMeshes
-		//| aiProcess_OptimizeGraph
-		//| aiProcess_PreTransformVertices
-		//| aiProcess_RemoveRedundantMaterials
+		| aiProcess_ImproveCacheLocality
+		| aiProcess_OptimizeMeshes
+		| aiProcess_OptimizeGraph
+		| aiProcess_PreTransformVertices
+		| aiProcess_RemoveRedundantMaterials
+			)
 	);
 
 	if (pScene)
@@ -67,11 +69,13 @@ bool Mesh::InitFromScene(const aiScene* pScene, const std::string& filename)
 	// Prepare buffers
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> normals;
+	std::vector<glm::vec3> tangents;
 	std::vector<glm::vec2> texcoords;
 	std::vector<unsigned int> indices;
 
 	positions.reserve(numVertices);
 	normals.reserve(numVertices);
+	tangents.reserve(numVertices);
 	texcoords.reserve(numVertices);
 	indices.reserve(numIndices);
 
@@ -80,7 +84,7 @@ bool Mesh::InitFromScene(const aiScene* pScene, const std::string& filename)
 	for (unsigned int i = 0; i < pScene->mNumMeshes; ++i)
 	{
 		pMesh = pScene->mMeshes[i];
-		InitMesh(pMesh, positions, normals, texcoords, indices);
+		InitMesh(pMesh, positions, normals, tangents, texcoords, indices);
 	}
 
 	if (!InitMaterials(pScene, filename))
@@ -104,6 +108,11 @@ bool Mesh::InitFromScene(const aiScene* pScene, const std::string& filename)
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+	glBindBuffer(GL_ARRAY_BUFFER, m_Buffers[MESH_BUFFER_TYPE_TANGENT]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tangents[0]) * tangents.size(), &tangents[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Buffers[MESH_BUFFER_TYPE_INDEX]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
 	
@@ -114,6 +123,7 @@ bool Mesh::InitFromScene(const aiScene* pScene, const std::string& filename)
 void Mesh::InitMesh(const aiMesh* pMesh,
 	std::vector<glm::vec3>& positions,
 	std::vector<glm::vec3>& normals,
+	std::vector<glm::vec3>& tangents,
 	std::vector<glm::vec2>& texcoords,
 	std::vector<unsigned int>& indices)
 {
@@ -124,12 +134,14 @@ void Mesh::InitMesh(const aiMesh* pMesh,
 	{
 		const aiVector3D* pPos = &(pMesh->mVertices[i]);
 		const aiVector3D* pNorm = &(pMesh->mNormals[i]);
+		const aiVector3D* pTang = &(pMesh->mTangents[i]);
 		// mesh can have up to 8 texture coordinates sets
 		const aiVector3D* pTex = pMesh->HasTextureCoords(0) ? 
 			&(pMesh->mTextureCoords[0][i]) : &zero;
 
 		positions.push_back(gvec33(pPos));
 		normals.push_back(gvec33(pNorm));
+		tangents.push_back(gvec33(pTang));
 		texcoords.push_back(gvec32(pTex));
 	}
 
@@ -162,6 +174,11 @@ void Mesh::AddTransformation(glm::mat4x4 transform)
 	m_NormalMatrices.push_back(glm::transpose(glm::inverse(transform)));
 }
 
+void Mesh::ComputeSDF()
+{
+
+}
+
 void Mesh::Render(GLuint program)
 {
 	glBindVertexArray(m_VAO);
@@ -185,7 +202,6 @@ void Mesh::Render(GLuint program)
 				(void*)(sizeof(unsigned int) * m_Entries[i].BaseIndex), // skip some indices for another mesh
 				m_Entries[i].BaseVertex);
 			printOpenGLError();
-
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}

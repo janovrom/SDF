@@ -26,22 +26,25 @@ namespace Tools {
     // Desc: 
     //-----------------------------------------------------------------------------
     inline void DrawScreenQuad() {
-        static GLuint s_vao = 0;
-        if (s_vao == 0) {
+        static GLuint s_quadvao = 0;
+        if (s_quadvao == 0) {
             // Lazy initialization of VBO with QUAD polygon mesh
-            glGenVertexArrays(1, &s_vao);
-            glBindVertexArray(s_vao);
+            glGenVertexArrays(1, &s_quadvao);
+            glBindVertexArray(s_quadvao);
                 GLuint vbo = 0;
                 glGenBuffers(1, &vbo);
                 glBindBuffer(GL_ARRAY_BUFFER, vbo);
                 glBufferData(GL_ARRAY_BUFFER, sizeof(Mesh::QUAD_VERTEX_ARRAY), Mesh::QUAD_VERTEX_ARRAY, GL_STATIC_DRAW);
-                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (const void*) 0);
                 glEnableVertexAttribArray(0);
+                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (const void*) 0);
+				glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
-            glDeleteBuffers(1, &vbo);
-        }
+   //         glDeleteBuffers(1, &vbo);
+			//glDisableVertexAttribArray(0);
 
-        glBindVertexArray(s_vao);
+		}
+
+        glBindVertexArray(s_quadvao);
         glDrawArrays(GL_QUADS, 0, Mesh::NUM_QUAD_VERTICES);
         glBindVertexArray(0);
     }

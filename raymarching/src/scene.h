@@ -13,6 +13,8 @@
 
 Mesh Objects[NUM_FILES];
 GLuint PLights[NUM_POINT_LIGHTS];
+GLuint DLights[NUM_DIRECTIONAL_LIGHTS];
+GLuint m_SphereVAO;
 float PLightsRadii[NUM_POINT_LIGHTS];
 
 
@@ -62,7 +64,8 @@ void LoadScene()
 	tin.open("scene.lights"); // First are all point lights, then directional lights
 	// Generate buffers for lights
 	glGenBuffers(NUM_POINT_LIGHTS, &PLights[0]);
-
+	glGenBuffers(NUM_DIRECTIONAL_LIGHTS, &DLights[0]);
+	// Load point lights
 	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{
 		int type;
@@ -74,7 +77,20 @@ void LoadScene()
 		tin >> p.pos.x >> p.pos.y >> p.pos.z;
 		p.radius = CalcPLightBSphere(p);
 		glBindBuffer(GL_UNIFORM_BUFFER, PLights[i]);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight), (void*)&p, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight), (void*)&p, GL_STATIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+	// Load directional lights
+	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
+	{
+		int type;
+		tin >> type;
+		DirectionalLight p;
+		tin >> p.light.color.x >> p.light.color.y >> p.light.color.z;
+		tin >> p.light.ambientIntensity >> p.light.diffuseIntensity;
+		tin >> p.dir.x >> p.dir.y >> p.dir.z;
+		glBindBuffer(GL_UNIFORM_BUFFER, DLights[i]);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), (void*)&p, GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 	tin.close();

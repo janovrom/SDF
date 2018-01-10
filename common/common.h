@@ -4,6 +4,9 @@
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
+#ifndef __COMMON_H__
+#define __COMMON_H__
+
 #include "GLEW/glew.h"
 #include "GLEW/wglew.h"
 #include "GLFW/glfw3.h"
@@ -509,3 +512,5 @@ int common_main(int window_width, int window_height, const char* window_title,
                        cbUserMouseButtonChanged,
                        cbUserMousePositionChanged);
 }
+
+#endif // !__COMMON_H__

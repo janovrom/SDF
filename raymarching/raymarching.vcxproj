@@ -199,17 +199,23 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
     <ClCompile Include="src\glerror.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mesh.cpp" />
+    <ClCompile Include="src\sdf.cpp" />
     <ClCompile Include="src\texture.cpp" />
     <ClCompile Include="src\tga.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\compute-sdf.shader">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="res\directionallight-pass.fs" />
+    <None Include="res\directionallight-pass.vs" />
     <None Include="res\fragment.fs">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="res\light-pass.vs" />
+    <None Include="res\pointlight-pass.vs" />
     <None Include="res\pointlight-pass.fs" />
     <None Include="res\raymarching.fs">
       <DeploymentContent>false</DeploymentContent>
@@ -233,6 +239,7 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
     <ClInclude Include="src\lights.h" />
     <ClInclude Include="src\mesh.h" />
     <ClInclude Include="src\scene.h" />
+    <ClInclude Include="src\sdf.h" />
     <ClInclude Include="src\texture.h" />
     <ClInclude Include="src\tga.h" />
   </ItemGroup>

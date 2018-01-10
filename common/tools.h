@@ -4,6 +4,9 @@
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
+#ifndef __TOOLS_H__
+#define __TOOLS_H__
+
 #include <math.h>
 #include <string>
 #include <vector>
@@ -457,16 +460,16 @@ namespace Tools {
         // Name: CreateShaderFromSource()
         // Desc: 
         //-----------------------------------------------------------------------------
-        GLuint CreateShaderFromSource(GLenum shader_type, const char* source) {
+        GLuint CreateShaderFromSource(GLenum shader_type, const char* source, const char* name) {
             if (source == NULL)
                 return 0;
 
             switch (shader_type) {
-                case GL_VERTEX_SHADER         : printf("vertex shader creation ... "); break;
-                case GL_FRAGMENT_SHADER       : printf("fragment shader creation ... "); break;
-                case GL_GEOMETRY_SHADER       : printf("geometry shader creation ... "); break;
-                case GL_TESS_CONTROL_SHADER   : printf("tesselation control shader creation ... "); break;
-                case GL_TESS_EVALUATION_SHADER: printf("tesselation evaluation shader creation ... "); break;
+                case GL_VERTEX_SHADER         : printf("vertex shader %s creation ... ", name); break;
+                case GL_FRAGMENT_SHADER       : printf("fragment shader %s creation ... ", name); break;
+                case GL_GEOMETRY_SHADER       : printf("geometry shader %s creation ... ", name); break;
+                case GL_TESS_CONTROL_SHADER   : printf("tesselation control %s shader creation ... ", name); break;
+                case GL_TESS_EVALUATION_SHADER: printf("tesselation evaluation %s shader creation ... ", name); break;
                 default                       : return 0;
             }
 
@@ -504,9 +507,9 @@ namespace Tools {
                 std::string temp = buffer;
                 std::size_t insertIdx = temp.find("\n", temp.find("#version"));
                 temp.insert((insertIdx != std::string::npos) ? insertIdx : 0, std::string("\n") + preprocessor + "\n\n");
-                shader_id = CreateShaderFromSource(shader_type, temp.c_str());
+                shader_id = CreateShaderFromSource(shader_type, temp.c_str(), file_name);
             } else
-                shader_id = CreateShaderFromSource(shader_type, buffer);
+                shader_id = CreateShaderFromSource(shader_type, buffer, file_name);
  
             delete [] buffer;
             return shader_id;
@@ -547,7 +550,7 @@ namespace Tools {
             // Create shader program object
             GLuint pr_id = glCreateProgram();
             for (int i = 0; i < count; i++) {
-                GLuint shader_id = CreateShaderFromSource(shader_types[i], source[i]);
+                GLuint shader_id = CreateShaderFromSource(shader_types[i], source[i], "");
                 if (shader_id == 0) {
                     glDeleteProgram(pr_id);
                     return false;
@@ -1136,3 +1139,5 @@ namespace Tools {
 
     }; // end of namespace Noise
 }; // end of namespace Tools
+
+#endif // !__TOOLS_H__

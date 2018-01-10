@@ -32,10 +32,12 @@ private:
 	void InitMesh(const aiMesh* pMesh, 
 		std::vector<glm::vec3>& positions,
 		std::vector<glm::vec3>& normals,
+		std::vector<glm::vec3>& tangents,
 		std::vector<glm::vec2>& texcoords,
 		std::vector<unsigned int>& indices
 		);
 	bool InitMaterials(const aiScene* pScene, const std::string& filename);
+	void ComputeSDF();
 	void Clear();
 
 #define INVALID_MATERIAL	0xFFFFFFFF
@@ -45,6 +47,7 @@ private:
 		MESH_BUFFER_TYPE_INDEX = 0,
 		MESH_BUFFER_TYPE_POSITION,
 		MESH_BUFFER_TYPE_NORMAL,
+		MESH_BUFFER_TYPE_TANGENT,
 		MESH_BUFFER_TYPE_UV,
 		MESH_NUM_BUFFERS
 	};

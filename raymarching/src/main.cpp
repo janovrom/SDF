@@ -6,6 +6,7 @@
 #include "gbuffer.h"
 #include "scene.h"
 #include "glerror.h"
+#include "sdf.h"
 
 const unsigned int WINDOW_WIDTH		= 800;
 const unsigned int WINDOW_HEIGHT	= 600;
@@ -14,11 +15,11 @@ bool		g_WireMode				= false;
 GLuint		g_Program;
 GLuint		g_RaymarchingProgram;
 GLuint		g_PointLightProgram;
-GLuint		g_ModelVBO;
-GLuint		g_ModelVAO;
+GLuint		g_DirLightProgram;
+GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
-
+SDF			m_sdf;
 double		g_Time;
  
 void updateUserData()
@@ -52,16 +53,16 @@ void DSGeometryPass()
 	
 
 	   
-	//// Draw screen quad for raymarching 
-	//glUseProgram(g_RaymarchingProgram); 
-	////m_gbuffer.BindForRead();   
-	//glActiveTexture(GL_TEXTURE0);  
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture(  ));
-	//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
-	//glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
-	//Tools::DrawScreenQuad(); 
-	//glBindTexture(GL_TEXTURE_2D,  0);  
-	//glUseProgram(0);  
+	// Draw screen quad for raymarching 
+	glUseProgram(g_RaymarchingProgram); 
+	//m_gbuffer.BindForRead();   
+	glActiveTexture(GL_TEXTURE0);  
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture(  ));
+	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
+	glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
+	Tools::DrawScreenQuad(); 
+	glBindTexture(GL_TEXTURE_2D,  0);  
+	glUseProgram(0);  
 
 	// GBuffer is filled, stencil needs it and shouldn't change it
 	glDepthMask(GL_FALSE);   
@@ -81,14 +82,14 @@ void BeginLightPasses()
 void DSPointLightPass()
 {
 	glUseProgram(g_PointLightProgram);
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
-	printOpenGLError();
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
-	printOpenGLError();
-	glActiveTexture(GL_TEXTURE0 + 2);
-	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
+	//glActiveTexture(GL_TEXTURE0 + 0);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
+	//printOpenGLError();
+	//glActiveTexture(GL_TEXTURE0 + 1);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
+	//printOpenGLError();
+	//glActiveTexture(GL_TEXTURE0 + 2);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
 	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{
 		/*glUniform1f(glGetUniformLocation(g_PointLightProgram, "u_Radius"), PLightsRadii[i]);
@@ -102,6 +103,37 @@ void DSPointLightPass()
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[i]);
 		printOpenGLError();
 		Tools::DrawSphere();
+		printOpenGLError();
+	}
+	glUseProgram(0);
+}
+
+void DSDirectionalLightPass()
+{
+	glUseProgram(g_DirLightProgram);
+	//glActiveTexture(GL_TEXTURE0 + 0);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
+	//printOpenGLError();
+	//glActiveTexture(GL_TEXTURE0 + 1);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
+	//printOpenGLError();
+	//glActiveTexture(GL_TEXTURE0 + 2);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
+	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
+	{
+		/*glUniform1f(glGetUniformLocation(g_PointLightProgram, "u_Radius"), PLightsRadii[i]);
+		printOpenGLError();
+		glUniform3fv(glGetUniformLocation(g_PointLightProgram, "u_Center"), 1, &PLights[i].pos.x);
+		printOpenGLError();*/
+		glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_PosTex"), 0);
+		glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_ColTex"), 1);
+		glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_NormTex"), 2);
+		printOpenGLError();
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, DLights[i]);
+		printOpenGLError();
+		Tools::DrawScreenQuad();
+		printOpenGLError();
+
 	}
 	glUseProgram(0);
 }
@@ -112,7 +144,11 @@ void DSLightPass()
 
 	GLsizei QWidth = (GLsizei)(WINDOW_WIDTH / 4.0f);
 	GLsizei QHeight = (GLsizei)(WINDOW_HEIGHT / 4.0f);
-
+#ifdef COMPUTE_SDF
+	{ // launch compute shaders!
+		m_sdf.LaunchComputeShader(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
+	}
+#endif
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 	Tools::Texture::Show2DTexture(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR),
 		WINDOW_WIDTH - QWidth, WINDOW_HEIGHT - 1 * QHeight, QWidth, QHeight);
@@ -124,6 +160,7 @@ void DSLightPass()
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
 	Tools::Texture::Show2DTexture(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL),
 		WINDOW_WIDTH - QWidth, WINDOW_HEIGHT - 3 * QHeight, QWidth, QHeight);
+
 
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
 	Tools::Texture::Show2DTexture(m_gbuffer.GetDepthTexture(), 
@@ -143,13 +180,14 @@ void display()
 	DSGeometryPass();
 	BeginLightPasses();
 	DSPointLightPass();
+	DSDirectionalLightPass();
 	printOpenGLError();
 	DSLightPass();
 
-	glReadBuffer(0);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	printOpenGLError();
+	//glReadBuffer(0);
+	//glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	//printOpenGLError();
 	g_Time = glfwGetTime() - g_Time;
 }
 
@@ -172,19 +210,6 @@ void initGL()
 	// Load shader program
 	compileShaders();
 
-	// Create vertex array buffer object
-	glGenVertexArrays(1, &g_ModelVAO);
-	glBindVertexArray(g_ModelVAO);
-	glGenBuffers(1, &g_ModelVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, g_ModelVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Tools::Mesh::ELEPHANT_VERTEX_AND_NORMAL_ARRAY_4D_STREAM), Tools::Mesh::ELEPHANT_VERTEX_AND_NORMAL_ARRAY_4D_STREAM, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(0));
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	 
 	// Load scene objects
 	LoadScene();
 
@@ -195,8 +220,10 @@ void TW_CALL compileShaders(void *clientData)
 {
 	// Create shader program object
 	Tools::Shader::CreateShaderProgramFromFile(g_Program, "vertex.vs", NULL, NULL, NULL, "fragment.fs");
-	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "light-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "pointlight-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
+	m_sdf.InitShader();
 }
 
 void initGUI(TwBar* menu)

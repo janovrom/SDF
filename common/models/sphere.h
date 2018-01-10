@@ -4581,26 +4581,29 @@ namespace Tools {
     // Desc: 
     //-----------------------------------------------------------------------------
     inline void DrawSphere() {
-        static GLuint s_vao = 0;
-        if (s_vao == 0) {
+        static GLuint s_spherevao = 0;
+        if (s_spherevao == 0) {
             // Lazy initialization of VBO with sphere polygon mesh
-            glGenVertexArrays(1, &s_vao);
-            glBindVertexArray(s_vao);
+            glGenVertexArrays(1, &s_spherevao);
+            glBindVertexArray(s_spherevao);
                 GLuint vbo = 0;
                 glGenBuffers(1, &vbo);
                 glBindBuffer(GL_ARRAY_BUFFER, vbo);
                 glBufferData(GL_ARRAY_BUFFER, sizeof(Mesh::SPHERE), Mesh::SPHERE, GL_STATIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (const void *) 0);
-                glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (const void *) (3 * sizeof(GLfloat)));
-                glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (const void *) (6 * sizeof(GLfloat)));
                 glEnableVertexAttribArray(0);
-                glEnableVertexAttribArray(1);
-                glEnableVertexAttribArray(2);
-                // glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (const void *) 0);
+                //glEnableVertexAttribArray(1);
+                //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (const void *) (3 * sizeof(GLfloat)));
+                //glEnableVertexAttribArray(2);
+                //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (const void *) (6 * sizeof(GLfloat)));
+                 glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
-            glDeleteBuffers(1, &vbo);
+   //         glDeleteBuffers(1, &vbo);
+			//glDisableVertexAttribArray(0);
+			//glDisableVertexAttribArray(1);
+			//glDisableVertexAttribArray(2);
         }
-        glBindVertexArray(s_vao);
+        glBindVertexArray(s_spherevao);
         glDrawArrays(GL_TRIANGLES, 0, sizeof(Mesh::SPHERE) / (8*sizeof(GLfloat)));
         glBindVertexArray(0);
     }

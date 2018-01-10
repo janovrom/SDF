@@ -1,21 +1,5 @@
 #version 400
 
-
-struct BaseLight
-{
-	vec3 color;
-	float ambientIntensity;
-	float diffuseIntensity;
-};
-
-struct Attenuation
-{
-	float constant;
-	float linear;
-	float exp;
-};
-
-
 struct PointLight
 {
 	vec3 color;
@@ -29,8 +13,7 @@ struct PointLight
 };
 
 layout(location = 0) in vec3 a_Pos;
-layout(location = 1) in vec3 a_Norm;
-layout(location = 2) in vec2 a_Tex;
+
 
 uniform mat4 u_MVPMatrix;
 layout(std140, binding = 1) uniform PointLightBlock
