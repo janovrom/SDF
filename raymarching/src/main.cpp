@@ -151,6 +151,9 @@ void DSRenderPointLights()
 
 void DSDirectionalLightPass()
 {
+	glEnable(GL_BLEND);
+	glBlendEquation(GL_FUNC_ADD);
+	glBlendFunc(GL_ONE, GL_ONE);
 	glUseProgram(g_DirLightProgram);
 	m_gbuffer.BindForLightPass();
 	glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_PosTex"), 0);
@@ -166,6 +169,8 @@ void DSDirectionalLightPass()
 
 	}
 	glUseProgram(0);
+	glDisable(GL_BLEND);
+
 }
 
 void DSFinalLightPass()
@@ -217,7 +222,7 @@ void display()
 	m_gbuffer.StartFrame();
 	DSGeometryPass();
 	DSRenderPointLights();
-	//DSDirectionalLightPass();
+	DSDirectionalLightPass();
 	printOpenGLError();
 	DSFinalLightPass();
 	DSIntermediateLightPass();

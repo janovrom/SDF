@@ -371,7 +371,7 @@ int raymarch(vec3 ro, vec3 rd)
 			return -1;
 		}
 		vec2 d = map(p);
-		if (d.x < precis)
+		if (d.x < 0.0001)
 		{
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));

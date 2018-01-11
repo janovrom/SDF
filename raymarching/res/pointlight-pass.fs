@@ -61,7 +61,7 @@ vec4 CalcPointLight(vec3 worldPos, vec3 normal)
 	float attenuation = pLight.constant + pLight.linear * d + pLight.exp * d * d;
 	attenuation = max(1.0, attenuation);
 
-	return color;
+	return color / attenuation;
 }
 
 
