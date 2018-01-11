@@ -71,6 +71,12 @@
     <None Include="res\directionallight-pass.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\null-pass.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\null-pass.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gbuffer.h">

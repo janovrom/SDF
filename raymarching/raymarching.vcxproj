@@ -215,6 +215,8 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
       <FileType>Document</FileType>
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="res\null-pass.fs" />
+    <None Include="res\null-pass.vs" />
     <None Include="res\pointlight-pass.vs" />
     <None Include="res\pointlight-pass.fs" />
     <None Include="res\raymarching.fs">

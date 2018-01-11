@@ -23,8 +23,11 @@ public:
 	~GBuffer();
 
 	bool Init(unsigned int windowWidth, unsigned int windowHeight);
-	void BindForWrite();
-	void BindForRead();
+	void BindForGeometryPass();
+	void BindForStencilPass();
+	void BindForLightPass();
+	void BindForFinalPass();
+	void StartFrame();
 	void SetReadBuffer(GBUFFER_TEXTURE_TYPE TextureType);
 
 	GLuint GetDepthTexture()
@@ -41,6 +44,7 @@ private:
 	GLuint m_fbo = -1;
 	GLuint m_textures[GBUFFER_NUM_TEXTURES];
 	GLuint m_depthTexture = -1;
+	GLuint m_finalTexture = -1;
 };
 
 #endif // !__GBUFFER_H__

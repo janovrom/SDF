@@ -15,6 +15,7 @@ bool		g_WireMode				= false;
 GLuint		g_Program;
 GLuint		g_RaymarchingProgram;
 GLuint		g_PointLightProgram;
+GLuint		g_NullProgram;
 GLuint		g_DirLightProgram;
 GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
@@ -28,7 +29,7 @@ void updateUserData()
 
 void DSGeometryPass()
 {
-	m_gbuffer.BindForWrite();
+	m_gbuffer.BindForGeometryPass();
 	printOpenGLError();
 
 	// Updates to depth buffer only in geometry pass
@@ -69,65 +70,94 @@ void DSGeometryPass()
 	glDisable(GL_DEPTH_TEST); 
 }
 
-void BeginLightPasses()
+void DSStencilPass(unsigned int idx)
 {
+	glUseProgram(g_NullProgram);
+
+	m_gbuffer.BindForStencilPass();
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
+	printOpenGLError();
+
+	// Render both faces
+	glDisable(GL_CULL_FACE);
+
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_STENCIL_BUFFER_BIT);
+
+	// Populate the stencil buffer for now, so always pass the test
+	glStencilFunc(GL_ALWAYS, 0, 0);
+
+	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+
+	Tools::DrawSphere();
+	printOpenGLError();
+
+	glUseProgram(0);
+}
+
+void DSPointLightPass(unsigned int idx)
+{
+	glUseProgram(g_PointLightProgram);
+	m_gbuffer.BindForLightPass();
+	printOpenGLError();
+
+	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_PosTex"), 0);
+	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_ColTex"), 1);
+	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_NormTex"), 2);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
+	printOpenGLError();
+
+	glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
+	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_ONE, GL_ONE);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
 
-	m_gbuffer.BindForRead();
-	glClear(GL_COLOR_BUFFER_BIT);
+	// Draw sphere
+	Tools::DrawSphere();
+	printOpenGLError();
+
+	// Restore settings
+	glCullFace(GL_BACK);
+	glDisable(GL_BLEND);
+	glUseProgram(0);
 }
 
-void DSPointLightPass()
+void DSRenderPointLights()
 {
-	glUseProgram(g_PointLightProgram);
-	//glActiveTexture(GL_TEXTURE0 + 0);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
-	//printOpenGLError();
-	//glActiveTexture(GL_TEXTURE0 + 1);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
-	//printOpenGLError();
-	//glActiveTexture(GL_TEXTURE0 + 2);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
+	// Enable stencil test for point in sphere test
+	glEnable(GL_STENCIL_TEST);
+	// Bind textures to texture units 0-2
+	//m_gbuffer.BindForLightPass();
+	// Bind uniform textures
+	printOpenGLError();
+
 	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{
-		/*glUniform1f(glGetUniformLocation(g_PointLightProgram, "u_Radius"), PLightsRadii[i]);
+		// Handle DSStencilPass separately to prevent stencil overflow
+		DSStencilPass(i);
 		printOpenGLError();
-		glUniform3fv(glGetUniformLocation(g_PointLightProgram, "u_Center"), 1, &PLights[i].pos.x);
-		printOpenGLError();*/
-		glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_PosTex"), 0);
-		glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_ColTex"), 1);
-		glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_NormTex"), 2);
-		printOpenGLError();
-		glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[i]);
-		printOpenGLError();
-		Tools::DrawSphere();
+		// Draw lights
+		DSPointLightPass(i);
 		printOpenGLError();
 	}
 	glUseProgram(0);
+	// Disable stencil test for another passes
+	glDisable(GL_STENCIL_TEST);
 }
 
 void DSDirectionalLightPass()
 {
 	glUseProgram(g_DirLightProgram);
-	//glActiveTexture(GL_TEXTURE0 + 0);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
-	//printOpenGLError();
-	//glActiveTexture(GL_TEXTURE0 + 1);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
-	//printOpenGLError();
-	//glActiveTexture(GL_TEXTURE0 + 2);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL));
+	m_gbuffer.BindForLightPass();
+	glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_PosTex"), 0);
+	glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_ColTex"), 1);
+	glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_NormTex"), 2);
 	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
 	{
-		/*glUniform1f(glGetUniformLocation(g_PointLightProgram, "u_Radius"), PLightsRadii[i]);
-		printOpenGLError();
-		glUniform3fv(glGetUniformLocation(g_PointLightProgram, "u_Center"), 1, &PLights[i].pos.x);
-		printOpenGLError();*/
-		glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_PosTex"), 0);
-		glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_ColTex"), 1);
-		glUniform1i(glGetUniformLocation(g_DirLightProgram, "u_NormTex"), 2);
 		printOpenGLError();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, DLights[i]);
 		printOpenGLError();
@@ -138,7 +168,14 @@ void DSDirectionalLightPass()
 	glUseProgram(0);
 }
 
-void DSLightPass()
+void DSFinalLightPass()
+{
+	m_gbuffer.BindForFinalPass();
+	glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
+		0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+}
+
+void DSIntermediateLightPass()
 {
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
@@ -177,12 +214,13 @@ void display()
 	// Update user data if number of models changed
 	updateUserData();
 
+	m_gbuffer.StartFrame();
 	DSGeometryPass();
-	BeginLightPasses();
-	DSPointLightPass();
-	DSDirectionalLightPass();
+	DSRenderPointLights();
+	//DSDirectionalLightPass();
 	printOpenGLError();
-	DSLightPass();
+	DSFinalLightPass();
+	DSIntermediateLightPass();
 
 	//glReadBuffer(0);
 	//glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -221,6 +259,7 @@ void TW_CALL compileShaders(void *clientData)
 	// Create shader program object
 	Tools::Shader::CreateShaderProgramFromFile(g_Program, "vertex.vs", NULL, NULL, NULL, "fragment.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "pointlight-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_NullProgram, "pointlight-pass.vs", NULL, NULL, NULL, "null-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
 	m_sdf.InitShader();
