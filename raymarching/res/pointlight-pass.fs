@@ -16,6 +16,8 @@ uniform sampler2D u_PosTex;
 uniform sampler2D u_ColTex;
 uniform sampler2D u_NormTex;
 uniform vec3 u_EyePosWorld;
+uniform samplerCube u_ShadowMapTex;
+
 layout(std140, binding = 1) uniform PointLightBlock
 {
 	PointLight pLight;
@@ -23,7 +25,19 @@ layout(std140, binding = 1) uniform PointLightBlock
 
 out vec4 FragColor;
 
-vec4 CalcLightInternal(PointLight light, vec3 lightDirection, vec3 worldPos, vec3 normal)
+float CalcShadowFactor(vec3 lightDirection)
+{
+	float sampledDist = texture(u_ShadowMapTex, lightDirection).r;
+
+	float dist = length(lightDirection);
+
+	if (dist < sampledDist + 0.0001)
+		return 1.0; // Inside the light
+	else
+		return 0.5; // Inside the shadow
+}
+
+vec4 CalcLightInternal(PointLight light, vec3 lightDirection, vec3 worldPos, vec3 normal, float shadowFactor)
 {
 	vec4 ambientColor = vec4(light.color * light.ambientIntensity, 1.0);
 	float diffuseFactor = dot(normal, -lightDirection);
@@ -47,16 +61,17 @@ vec4 CalcLightInternal(PointLight light, vec3 lightDirection, vec3 worldPos, vec
 		}
 	}
 
-	return (ambientColor + diffuseColor + specularColor);
+	return (ambientColor + shadowFactor * (diffuseColor + specularColor));
 }
 
 vec4 CalcPointLight(vec3 worldPos, vec3 normal)
 {
 	vec3 lightDirection = worldPos - pLight.pos;
+	float shadowFactor = CalcShadowFactor(lightDirection);
 	float d = length(lightDirection);
 	lightDirection = normalize(lightDirection);
 
-	vec4 color = CalcLightInternal(pLight, lightDirection, worldPos, normal);
+	vec4 color = CalcLightInternal(pLight, lightDirection, worldPos, normal, shadowFactor);
 
 	float attenuation = pLight.constant + pLight.linear * d + pLight.exp * d * d;
 	attenuation = max(1.0, attenuation);

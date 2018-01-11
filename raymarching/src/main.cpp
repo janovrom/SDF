@@ -16,6 +16,7 @@ GLuint		g_Program;
 GLuint		g_RaymarchingProgram;
 GLuint		g_PointLightProgram;
 GLuint		g_NullProgram;
+GLuint		g_ShadowMapProgram;
 GLuint		g_DirLightProgram;
 GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
@@ -51,8 +52,6 @@ void DSGeometryPass()
 	glUseProgram(0);  
 	printOpenGLError();
 	glDisable(GL_BLEND);
-	
-
 	   
 	// Draw screen quad for raymarching 
 	glUseProgram(g_RaymarchingProgram); 
@@ -75,7 +74,8 @@ void DSStencilPass(unsigned int idx)
 	glUseProgram(g_NullProgram);
 
 	m_gbuffer.BindForStencilPass();
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
+	//glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
+	PointLights[idx].BindLight();
 	printOpenGLError();
 
 	// Render both faces
@@ -105,11 +105,15 @@ void DSPointLightPass(unsigned int idx)
 	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_PosTex"), 0);
 	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_ColTex"), 1);
 	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_NormTex"), 2);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
+	//glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
+	PointLights[idx].BindLight();
 	printOpenGLError();
 
 	glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
+	printOpenGLError();
 	glDisable(GL_DEPTH_TEST);
+	printOpenGLError();
+
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -124,6 +128,30 @@ void DSPointLightPass(unsigned int idx)
 	glCullFace(GL_BACK);
 	glDisable(GL_BLEND);
 	glUseProgram(0);
+}
+
+void ShadowCubeMapPass()
+{
+	glCullFace(GL_FRONT);
+
+	
+
+	glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+
+	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; i++)
+	{
+		for (unsigned int j = 0; j < 6; ++j)
+		{
+			glUseProgram(g_ShadowMapProgram);
+			PointLights[i].BindForWrite(i, g_ShadowMapProgram);
+			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		
+			DSGeometryPass();
+			printOpenGLError();
+		}
+	}
+	glUseProgram(0);
+	glCullFace(GL_BACK);
 }
 
 void DSRenderPointLights()
@@ -254,7 +282,7 @@ void initGL()
 	compileShaders();
 
 	// Load scene objects
-	LoadScene();
+	LoadScene(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	g_Time = glfwGetTime(); // in seconds
 }
@@ -265,6 +293,7 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_Program, "vertex.vs", NULL, NULL, NULL, "fragment.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "pointlight-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_NullProgram, "pointlight-pass.vs", NULL, NULL, NULL, "null-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_ShadowMapProgram, "shadowmap.vs", NULL, NULL, NULL, "shadowmap.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
 	m_sdf.InitShader();
