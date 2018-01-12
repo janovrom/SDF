@@ -55,11 +55,14 @@ void DSGeometryPass()
 
 	   
 	// Draw screen quad for raymarching 
+	glDisable(GL_DEPTH_TEST);
 	glUseProgram(g_RaymarchingProgram); 
-	//m_gbuffer.BindForRead();   
 	glActiveTexture(GL_TEXTURE0);  
-	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture(  ));
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
 	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
+	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_PosTex"), 1);
 	glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
 	Tools::DrawScreenQuad(); 
 	glBindTexture(GL_TEXTURE_2D,  0);  
@@ -162,7 +165,8 @@ void DSDirectionalLightPass()
 	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
 	{
 		printOpenGLError();
-		glBindBufferBase(GL_UNIFORM_BUFFER, 0, DLights[i]);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, DLights[i]);
+		//glBindBufferRange(GL_UNIFORM_BUFFER, 2, DLights[i], 0, sizeof(DirectionalLight));
 		printOpenGLError();
 		Tools::DrawScreenQuad();
 		printOpenGLError();

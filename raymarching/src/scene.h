@@ -86,9 +86,10 @@ void LoadScene()
 		int type;
 		tin >> type;
 		DirectionalLight p;
-		tin >> p.light.color.x >> p.light.color.y >> p.light.color.z;
-		tin >> p.light.ambientIntensity >> p.light.diffuseIntensity;
+		tin >> p.color.x >> p.color.y >> p.color.z;
+		tin >> p.ambientIntensity >> p.diffuseIntensity;;
 		tin >> p.dir.x >> p.dir.y >> p.dir.z;
+		p.dir = glm::normalize(p.dir);
 		glBindBuffer(GL_UNIFORM_BUFFER, DLights[i]);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), (void*)&p, GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -100,7 +101,7 @@ void RenderSceneGeometry(GLuint program)
 {
 	for (unsigned int i = 0; i < NUM_FILES; ++i)
 	{
-		Objects[i].Render(program);
+		Objects[i].Render(program); 
 	}
 }
 

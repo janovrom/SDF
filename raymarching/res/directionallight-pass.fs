@@ -1,11 +1,11 @@
-#version 400
+#version 440
 
 struct DirectionalLight
 {
 	vec3 color;
 	float ambientIntensity;
-	float diffuseIntensity;
 	vec3 dir;
+	float diffuseIntensity;
 };
 
 uniform sampler2D u_PosTex;
@@ -13,7 +13,7 @@ uniform sampler2D u_ColTex;
 uniform sampler2D u_NormTex;
 uniform vec3 u_EyePosWorld;
 
-layout(std140, binding = 0) uniform DirectionalLightBlock
+layout(std140, binding = 2) uniform DirectionalLightBlock
 {
 	DirectionalLight dLight;
 };
@@ -55,5 +55,5 @@ void main()
 	normal = normalize(normal);
 
 	FragColor = color*CalcLightInternal(dLight, dLight.dir, worldPos, normal);
-	//FragColor = vec4(color, 1.0);
+	//FragColor = vec4(vec3(dLight.dir), 1.0);
 }

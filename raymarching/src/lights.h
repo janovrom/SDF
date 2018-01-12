@@ -27,8 +27,10 @@ struct Attenuation
 
 struct DirectionalLight
 {
-	BaseLight light;
+	glm::vec3 color;
+	float ambientIntensity;
 	glm::vec3 dir;
+	float diffuseIntensity;
 };
 
 struct PointLight

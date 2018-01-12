@@ -7,11 +7,13 @@ in vec3 v_Normal_worldspace;
 in vec3 v_Pos_worldspace;
 
 uniform sampler2D u_DepthTex;
+uniform sampler2D u_PosTex;
 uniform mat4 u_MVPMatrix;
 uniform float u_Near;
 uniform float u_Far;
 uniform vec4 u_Times;
 uniform vec3 u_EyeDirWorld;
+uniform vec3 u_EyePosWorld;
 
 layout(location = 0) out vec3 WorldPosOut;
 layout(location = 1) out vec3 DiffuseOut;
@@ -274,7 +276,8 @@ float smin(float a, float b, float k)
 
 float opDisplaceGround(vec3 p)
 {
-	//p += cnoise(p.xz / 128.0)*8.0;
+	p += cnoise(p.xz / 128.0)*8.0;
+	p.y -= 200.0;
 	//p += cnoise(p.xz / 256.0)*16.0;
 	//p += cnoise(p.xz * 16.0) / 64.0;
 	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 200.0));
@@ -297,7 +300,7 @@ float opDisplaceGround(vec3 p)
 float opBlendBoxTorus(vec3 p)
 {
 	float d1 = sdBox(p, vec3(1.0, 1.5, 1.5));
-	float d2 = sdTorus(p, vec2(1.5, 0.5));
+	float d2 = sdTorus(p, vec2(10.5, 2.5));
 	return smin(d1, d2, 0.15);
 }
 //-------------------------------------------------------------------------
@@ -321,16 +324,17 @@ float opTwistTorus(vec3 p, vec2 t)
 // negative answer.
 vec2 map(vec3 p)
 {
-	
+	p.y -= 5.0;
 	vec2 res = vec2(opBlendBoxTorus(p), 46.7);
 	//vec2 res = vec2(opTwistTorus(p, vec2(5, 1.5)), 46.7);
 	//vec2 hp = vec2(opMapHexPrims(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
 	//vec2 hp = vec2(opRepBoxes(p, vec3(1.0)), 7.6);
 	//vec2 hp = vec2(opRepHexPrisms(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
-	//vec2 hp = vec2(opDisplaceGround(p), 17.32);
-	vec2 hp = vec2(sdPlane(p, vec4(0.0, 1.0, 0.0, 0.0)), 17.32);
+	vec2 hp = vec2(opDisplaceGround(p), 17.32);
+	//vec2 hp = vec2(sdPlane(p, vec4(0.0, 1.0, 0.0, 0.0)), 17.32);
+	//vec2 hp = vec2(opGround(p), 17.32);
 	res = opUn(res, hp);
-	return hp;
+	return res;
 }
 
 vec3 normal(vec3 p, float precis)
@@ -355,23 +359,25 @@ int raymarch(vec3 ro, vec3 rd)
 {
 	vec3 color = vec3(0);
 
-	const int maxstep = 64;
+	const int maxstep = 32;
 	const vec3 lightDir = normalize(vec3(1,-1,1));
 	float t = 0;
-
 	float depth = texelFetch(u_DepthTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0).x;
 	float tmax = linearDepth(depth);
+	vec4 wPos = texelFetch(u_PosTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
+
 	for (int i = 0; i < maxstep; ++i)
 	{
 		vec3 p = ro + rd * t;
-		float precis = 0.01 * t;
+		float precis = 0.001 * t;
 		// Do the depth test
-		if (t * dot(rd, u_EyeDirWorld) > tmax/*+ t * 0.001*/)
+		//if (t * dot(rd, u_EyeDirWorld) > tmax)
+		if (wPos.a > 0 && length(p - u_EyePosWorld) < length(wPos.xyz - u_EyePosWorld))
 		{
 			return -1;
 		}
 		vec2 d = map(p);
-		if (d.x < 0.0001)
+		if (abs(d.x) < precis)
 		{
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
@@ -392,18 +398,34 @@ int raymarch(vec3 ro, vec3 rd)
 	}
 
 	WorldPosOut = color;
-	DiffuseOut = color;
+	DiffuseOut = vec3(0.82, 0.92, 0.93);
 	NormalOut = color;
 	gl_FragDepth = 1.0;
 	//return color;
-	return 1;
+	return 0;
 
 }
 
 void main() {
 	//FragColor = vec4((v_Vertex.x + 1) / 2.0, (v_Vertex.y + 1) / 2.0, 0.0, 0.2);
-	if (raymarch(v_Pos_worldspace, v_Normal_worldspace) < 0)
+	//if (raymarch(v_Pos_worldspace, v_Normal_worldspace) < 0)
+	//{
+	//	discard;
+	//}
+	switch (raymarch(v_Pos_worldspace, v_Normal_worldspace))
 	{
+	case -1:
+		DiffuseOut = vec3(1, 0, 0);
 		discard;
+		break;
+	case 0:
+		DiffuseOut = vec3(0, 1, 0);
+		break;
+	case 1:
+		DiffuseOut = vec3(0, 0, 1);
+		break;
+	default:
+		break;
 	}
+	//DiffuseOut = vec3(0.82, 0.92, 0.93);
 }
