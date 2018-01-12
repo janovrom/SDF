@@ -19,8 +19,10 @@ void main() {
 	//float depthP = zc / wc;
 	//gl_FragDepth = 0.5 * depthP + 0.5;
 	DiffuseOut = texture(u_DiffuseTex, v_UV).bgra;
-	if (DiffuseOut.a < 0.1)
+	if (DiffuseOut.a < 0.5)
 		discard;
+	else
+		DiffuseOut.a = 1.0;
 	WorldPosOut = vec4(v_WorldPos, 1.0);
 	NormalOut = vec4(normalize(v_Normal), 1.0);
 }

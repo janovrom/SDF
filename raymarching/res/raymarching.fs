@@ -372,7 +372,7 @@ int raymarch(vec3 ro, vec3 rd)
 		float precis = 0.001 * t;
 		// Do the depth test
 		//if (t * dot(rd, u_EyeDirWorld) > tmax)
-		if (wPos.a > 0 && length(p - u_EyePosWorld) < length(wPos.xyz - u_EyePosWorld))
+		if (wPos.a > 0 && length(p - u_EyePosWorld) > length(wPos.xyz - u_EyePosWorld))
 		{
 			return -1;
 		}
