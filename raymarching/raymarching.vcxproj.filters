@@ -36,6 +36,9 @@
     <ClCompile Include="src\sdf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\shadowmap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\fragment.fs">
@@ -77,6 +80,12 @@
     <None Include="res\null-pass.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\shadow-pass.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\shadow-pass.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gbuffer.h">
@@ -101,6 +110,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\sdf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\shadowmap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

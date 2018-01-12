@@ -15,9 +15,9 @@ uniform vec4 u_Times;
 uniform vec3 u_EyeDirWorld;
 uniform vec3 u_EyePosWorld;
 
-layout(location = 0) out vec3 WorldPosOut;
-layout(location = 1) out vec3 DiffuseOut;
-layout(location = 2) out vec3 NormalOut;
+layout(location = 0) out vec4 WorldPosOut;
+layout(location = 1) out vec4 DiffuseOut;
+layout(location = 2) out vec4 NormalOut;
 //layout(location = 3) out vec3 DepthOut;
 
 
@@ -276,11 +276,10 @@ float smin(float a, float b, float k)
 
 float opDisplaceGround(vec3 p)
 {
-	p += cnoise(p.xz / 128.0)*8.0;
-	p.y -= 200.0;
-	//p += cnoise(p.xz / 256.0)*16.0;
+	//p += cnoise(p.xz / 128.0)*8.0;
+	p += cnoise(p.xz / 16.0)*2.0;
 	//p += cnoise(p.xz * 16.0) / 64.0;
-	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 200.0));
+	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 2.0));
 	float maxDist = 128.0;
 	float total = 0;
 	float frequency = 1;
@@ -293,7 +292,7 @@ float opDisplaceGround(vec3 p)
 	//	d1 += cnoise(p.xz / 4.0)/8.0;
 	//}
 	//d1 += /*snoise(p/32.0)+*/cnoise(p.xz/2.0)/8.0 + cnoise(p.xz / 4.0)/8.0 + cnoise(p.xz / 64.0)*16.0;
-	float d2 = opGround(p);
+	float d2 = 0;// opGround(p) / 10.0;
 	return d1 - d2;
 }
 
@@ -357,9 +356,9 @@ float linearDepth(float depthSample)
 
 int raymarch(vec3 ro, vec3 rd)
 {
-	vec3 color = vec3(0);
+	vec4 color = vec4(0);
 
-	const int maxstep = 32;
+	const int maxstep = 64;
 	const vec3 lightDir = normalize(vec3(1,-1,1));
 	float t = 0;
 	float depth = texelFetch(u_DepthTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0).x;
@@ -382,9 +381,9 @@ int raymarch(vec3 ro, vec3 rd)
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
 			vec3 col = vec3(0.76, 0.7, 0.5);
-			WorldPosOut = p;
-			DiffuseOut = col;
-			NormalOut = n;
+			WorldPosOut = vec4(p, 1.0);
+			DiffuseOut = vec4(col, 1.0);
+			NormalOut = vec4(n,1.0);
 			vec4 P = u_MVPMatrix * vec4(p, 1.0);
 			float zc = P.z;
 			float wc = P.w;
@@ -398,7 +397,7 @@ int raymarch(vec3 ro, vec3 rd)
 	}
 
 	WorldPosOut = color;
-	DiffuseOut = vec3(0.82, 0.92, 0.93);
+	DiffuseOut = vec4(0.82, 0.92, 0.93, 1.0);
 	NormalOut = color;
 	gl_FragDepth = 1.0;
 	//return color;
@@ -415,14 +414,14 @@ void main() {
 	switch (raymarch(v_Pos_worldspace, v_Normal_worldspace))
 	{
 	case -1:
-		DiffuseOut = vec3(1, 0, 0);
+		//DiffuseOut = vec4(1, 0, 0, 1.0);
 		discard;
 		break;
 	case 0:
-		DiffuseOut = vec3(0, 1, 0);
+		DiffuseOut = vec4(0, 1, 0, 1.0);
 		break;
 	case 1:
-		DiffuseOut = vec3(0, 0, 1);
+		//DiffuseOut = vec4(0, 0, 1, 1.0);
 		break;
 	default:
 		break;

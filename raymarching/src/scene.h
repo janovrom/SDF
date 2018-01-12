@@ -6,7 +6,11 @@
 #include "mesh.h"
 #include <iostream>
 #include "../../common/glm/gtc/matrix_transform.hpp"
-#include "lights.h"
+//#include "lights.h"
+#include "shadowmap.h"
+
+const unsigned int WINDOW_WIDTH = 800;
+const unsigned int WINDOW_HEIGHT = 600;
 
 #define NUM_FILES 7
 
@@ -14,6 +18,7 @@
 Mesh Objects[NUM_FILES];
 GLuint PLights[NUM_POINT_LIGHTS];
 GLuint DLights[NUM_DIRECTIONAL_LIGHTS];
+ShadowMap DirShadowMaps[NUM_DIRECTIONAL_LIGHTS];
 GLuint m_SphereVAO;
 float PLightsRadii[NUM_POINT_LIGHTS];
 
@@ -87,9 +92,10 @@ void LoadScene()
 		tin >> type;
 		DirectionalLight p;
 		tin >> p.color.x >> p.color.y >> p.color.z;
-		tin >> p.ambientIntensity >> p.diffuseIntensity;;
+		tin >> p.ambientIntensity >> p.diffuseIntensity;
 		tin >> p.dir.x >> p.dir.y >> p.dir.z;
 		p.dir = glm::normalize(p.dir);
+		DirShadowMaps[i].Init(WINDOW_WIDTH, WINDOW_HEIGHT, p);
 		glBindBuffer(GL_UNIFORM_BUFFER, DLights[i]);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), (void*)&p, GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);

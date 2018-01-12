@@ -11,7 +11,11 @@ struct DirectionalLight
 uniform sampler2D u_PosTex;
 uniform sampler2D u_ColTex;
 uniform sampler2D u_NormTex;
+uniform sampler2DShadow u_lightDepth;
 uniform vec3 u_EyePosWorld;
+uniform mat4 u_LightView;
+uniform mat4  u_LightProjection;
+
 
 layout(std140, binding = 2) uniform DirectionalLightBlock
 {
@@ -20,10 +24,19 @@ layout(std140, binding = 2) uniform DirectionalLightBlock
 
 out vec4 FragColor;
 
+float CalcShadowFactor(vec4 pos_lightSpace)
+{
+	vec3 proj = pos_lightSpace.xyz / pos_lightSpace.w;
+	proj = 0.5 * proj + 0.5;
+	return texture(u_lightDepth, proj);
+
+}
+
 vec4 CalcLightInternal(DirectionalLight light, vec3 lightDirection, vec3 worldPos, vec3 normal)
 {
 	vec4 ambientColor = vec4(light.color * light.ambientIntensity, 1.0);
 	float diffuseFactor = dot(normal, -lightDirection);
+	float shadowFactor = CalcShadowFactor(u_LightProjection * u_LightView * vec4(worldPos, 1.0));
 
 	vec4 diffuseColor = vec4(0, 0, 0, 0);
 	vec4 specularColor = vec4(0, 0, 0, 0);
@@ -44,7 +57,7 @@ vec4 CalcLightInternal(DirectionalLight light, vec3 lightDirection, vec3 worldPo
 		}
 	}
 
-	return (ambientColor + diffuseColor + specularColor);
+	return (ambientColor + shadowFactor * (diffuseColor + specularColor));
 }
 
 void main()
@@ -55,5 +68,6 @@ void main()
 	normal = normalize(normal);
 
 	FragColor = color*CalcLightInternal(dLight, dLight.dir, worldPos, normal);
+	//FragColor = u_LightProjection * u_LightView * vec4(worldPos, 1.0);
 	//FragColor = vec4(vec3(dLight.dir), 1.0);
 }

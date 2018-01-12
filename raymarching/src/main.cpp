@@ -7,9 +7,10 @@
 #include "scene.h"
 #include "glerror.h"
 #include "sdf.h"
+#include "../../common/glm/gtc/matrix_transform.hpp"
+#include "../../common/glm/glm.hpp" 
+#include "../../common/GLEW/glew.h" 
 
-const unsigned int WINDOW_WIDTH		= 800;
-const unsigned int WINDOW_HEIGHT	= 600;
 
 bool		g_WireMode				= false;
 GLuint		g_Program;
@@ -17,6 +18,7 @@ GLuint		g_RaymarchingProgram;
 GLuint		g_PointLightProgram;
 GLuint		g_NullProgram;
 GLuint		g_DirLightProgram;
+GLuint		g_ShadowProgram;
 GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
@@ -25,6 +27,47 @@ double		g_Time;
  
 void updateUserData()
 {
+}
+
+void DSDirShadowPass(unsigned int idx)
+{
+	glUseProgram(g_ShadowProgram);
+	DirShadowMaps[idx].BindForWrite(g_ShadowProgram);
+	printOpenGLError();
+
+	// Updates to depth buffer only in geometry pass
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Clear frame buffer and set OpenGL states
+	glClear(GL_DEPTH_BUFFER_BIT);
+	printOpenGLError();
+
+	RenderSceneGeometry(g_ShadowProgram);
+	printOpenGLError();
+	glDisable(GL_BLEND);
+	glUseProgram(0);
+
+
+	//// Draw screen quad for raymarching 
+	//glDisable(GL_DEPTH_TEST);
+	//glUseProgram(g_RaymarchingProgram);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
+	//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
+	//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_PosTex"), 1);
+	//glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
+	//Tools::DrawScreenQuad();
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glUseProgram(0);
+
+	// GBuffer is filled, stencil needs it and shouldn't change it
+	glDepthMask(GL_FALSE);
+	glDisable(GL_DEPTH_TEST);
 }
 
 void DSGeometryPass()
@@ -44,9 +87,10 @@ void DSGeometryPass()
 	  
 	glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
 	printOpenGLError();
-	 
 	// Update shader program  
 	glUseProgram(g_Program); 
+	//glUniformMatrix4fv(glGetUniformLocation(g_Program, "u_ModelViewMatrix"), 1, GL_FALSE, &glm::lookAt(glm::vec3(0, 1, 0), glm::vec3(0,0,0), glm::vec3(0.0, 0.0, -1.0))[0][0]);
+	//glUniformMatrix4fv(glGetUniformLocation(g_Program, "u_ProjectionMatrix"), 1, GL_FALSE, &glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f)[0][0]);
 	RenderSceneGeometry(g_Program);
 	glUseProgram(0);  
 	printOpenGLError();
@@ -167,6 +211,8 @@ void DSDirectionalLightPass()
 		printOpenGLError();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 2, DLights[i]);
 		//glBindBufferRange(GL_UNIFORM_BUFFER, 2, DLights[i], 0, sizeof(DirectionalLight));
+		DirShadowMaps[i].BindForRead(3, g_DirLightProgram);
+
 		printOpenGLError();
 		Tools::DrawScreenQuad();
 		printOpenGLError();
@@ -195,6 +241,14 @@ void DSIntermediateLightPass()
 		m_sdf.LaunchComputeShader(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 	}
 #endif
+	glBindTexture(GL_TEXTURE_2D, DirShadowMaps[0].GetTexture());
+	Tools::Texture::Show2DTexture(DirShadowMaps[0].GetTexture(),
+		0, WINDOW_HEIGHT - 1 * QHeight, QWidth, QHeight);
+
+	glBindTexture(GL_TEXTURE_2D, DirShadowMaps[1].GetTexture());
+	Tools::Texture::Show2DTexture(DirShadowMaps[1].GetTexture(),
+		0, WINDOW_HEIGHT - 2 * QHeight, QWidth, QHeight);
+
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 	Tools::Texture::Show2DTexture(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR),
 		WINDOW_WIDTH - QWidth, WINDOW_HEIGHT - 1 * QHeight, QWidth, QHeight);
@@ -222,6 +276,10 @@ void display()
 {
 	// Update user data if number of models changed
 	updateUserData();
+	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
+	{
+		DSDirShadowPass(i);
+	}
 
 	m_gbuffer.StartFrame();
 	DSGeometryPass();
@@ -270,6 +328,7 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "pointlight-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_NullProgram, "pointlight-pass.vs", NULL, NULL, NULL, "null-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_ShadowProgram, "shadow-pass.vs", NULL, NULL, NULL, "shadow-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
 	m_sdf.InitShader();
 }
