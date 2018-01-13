@@ -18,6 +18,7 @@ GLuint		g_RaymarchingProgram;
 GLuint		g_PointLightProgram;
 GLuint		g_NullProgram;
 GLuint		g_DirLightProgram;
+GLuint		g_DrawPointLightProgram;
 GLuint		g_ShadowProgram;
 GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
@@ -27,6 +28,57 @@ double		g_Time;
  
 void updateUserData()
 {
+}
+
+void DSPointShadowPass(unsigned int idx)
+{
+	//glCullFace(GL_FRONT);
+	glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+	glViewport(0, 0, SHADOW_CUBE_MAP_SIZE, SHADOW_CUBE_MAP_SIZE);
+	for (unsigned int i = 0; i < 6; ++i)
+	{
+		glUseProgram(g_ShadowProgram);
+		PointShadowMaps[idx].BindForWrite(g_ShadowProgram, i);
+		printOpenGLError();
+
+		// Updates to depth buffer only in geometry pass
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		// Clear frame buffer and set OpenGL states
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		printOpenGLError();
+
+		RenderSceneGeometry(g_ShadowProgram);
+		printOpenGLError();
+		glDisable(GL_BLEND);
+		glUseProgram(0);
+
+
+		//// Draw screen quad for raymarching 
+		//glDisable(GL_DEPTH_TEST);
+		//glUseProgram(g_RaymarchingProgram);
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
+		//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
+		//glActiveTexture(GL_TEXTURE1);
+		//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
+		//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_PosTex"), 1);
+		//glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
+		//Tools::DrawScreenQuad();
+		//glBindTexture(GL_TEXTURE_2D, 0);
+		//glUseProgram(0);
+
+		// GBuffer is filled, stencil needs it and shouldn't change it
+		glDepthMask(GL_FALSE);
+		glDisable(GL_DEPTH_TEST);
+	}
+	//glCullFace(GL_BACK);
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 void DSDirShadowPass(unsigned int idx)
@@ -152,6 +204,7 @@ void DSPointLightPass(unsigned int idx)
 	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_PosTex"), 0);
 	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_ColTex"), 1);
 	glUniform1i(glGetUniformLocation(g_PointLightProgram, "u_NormTex"), 2);
+	PointShadowMaps[idx].BindForRead(3, g_PointLightProgram);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, PLights[idx]);
 	printOpenGLError();
 
@@ -234,6 +287,17 @@ void DSIntermediateLightPass()
 {
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
+	glEnable(GL_DEPTH_TEST);
+	glUseProgram(g_DrawPointLightProgram);
+	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	{
+		glUniform3fv(glGetUniformLocation(g_DrawPointLightProgram, "u_LightPos"), 1, &PointShadowMaps[i].GetLightPosition().x);
+		Tools::DrawSphere();
+		printOpenGLError();
+	}
+	glDisable(GL_DEPTH_TEST);
+	glUseProgram(0);
+
 	GLsizei QWidth = (GLsizei)(WINDOW_WIDTH / 4.0f);
 	GLsizei QHeight = (GLsizei)(WINDOW_HEIGHT / 4.0f);
 #ifdef COMPUTE_SDF
@@ -241,13 +305,22 @@ void DSIntermediateLightPass()
 		m_sdf.LaunchComputeShader(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 	}
 #endif
-	glBindTexture(GL_TEXTURE_2D, DirShadowMaps[0].GetTexture());
-	Tools::Texture::Show2DTexture(DirShadowMaps[0].GetTexture(),
-		0, WINDOW_HEIGHT - 1 * QHeight, QWidth, QHeight);
+	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	{
+		glBindTexture(GL_TEXTURE_CUBE_MAP, PointShadowMaps[i].GetCubeTexture());
+		printOpenGLError();
+		Tools::Texture::ShowCubeTexture(PointShadowMaps[i].GetCubeTexture(),
+			0, WINDOW_HEIGHT - (i + NUM_DIRECTIONAL_LIGHTS + 1) * QHeight, QWidth, QHeight);
+		printOpenGLError();
+	}
 
-	glBindTexture(GL_TEXTURE_2D, DirShadowMaps[1].GetTexture());
-	Tools::Texture::Show2DTexture(DirShadowMaps[1].GetTexture(),
-		0, WINDOW_HEIGHT - 2 * QHeight, QWidth, QHeight);
+	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
+	{
+		glBindTexture(GL_TEXTURE_2D, DirShadowMaps[i].GetTexture());
+		Tools::Texture::Show2DTexture(DirShadowMaps[i].GetTexture(),
+			0, WINDOW_HEIGHT - (i + 1) * QHeight, QWidth, QHeight);
+	}
+	
 
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 	Tools::Texture::Show2DTexture(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR),
@@ -279,6 +352,11 @@ void display()
 	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
 	{
 		DSDirShadowPass(i);
+	}
+
+	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	{
+		DSPointShadowPass(i);
 	}
 
 	m_gbuffer.StartFrame();
@@ -328,6 +406,7 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "pointlight-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_NullProgram, "pointlight-pass.vs", NULL, NULL, NULL, "null-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_DrawPointLightProgram, "point-light-draw.vs", NULL, NULL, NULL, "point-light-draw.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_ShadowProgram, "shadow-pass.vs", NULL, NULL, NULL, "shadow-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
 	m_sdf.InitShader();

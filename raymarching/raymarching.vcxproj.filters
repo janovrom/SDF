@@ -86,6 +86,12 @@
     <None Include="res\shadow-pass.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\point-light-draw.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\point-light-draw.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gbuffer.h">

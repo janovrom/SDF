@@ -5,8 +5,8 @@
 #ifndef GLERROR_H
 #define GLERROR_H
 
-#define printOpenGLError() printOglError(__FILE__, __LINE__)
-//#define printOpenGLError() 
+//#define printOpenGLError() printOglError(__FILE__, __LINE__)
+#define printOpenGLError() 
 
 int printOglError(char *file, int line);
 

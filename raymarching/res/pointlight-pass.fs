@@ -15,6 +15,7 @@ struct PointLight
 uniform sampler2D u_PosTex;
 uniform sampler2D u_ColTex;
 uniform sampler2D u_NormTex;
+uniform samplerCube u_ShadowCube;
 uniform vec3 u_EyePosWorld;
 layout(std140, binding = 1) uniform PointLightBlock
 {
@@ -23,8 +24,23 @@ layout(std140, binding = 1) uniform PointLightBlock
 
 out vec4 FragColor;
 
+float CalcShadowFactor(vec3 lightToPoint)
+{
+	float depth = texture(u_ShadowCube, (lightToPoint)).r;
+
+	if (length(lightToPoint) < depth + 0.0001)
+	{
+		return 1.0;
+	}
+	else
+	{
+		return 0.25;
+	}
+}
+
 vec4 CalcLightInternal(PointLight light, vec3 lightDirection, vec3 worldPos, vec3 normal)
 {
+	float shadowFactor = CalcShadowFactor(worldPos - light.pos);
 	vec4 ambientColor = vec4(light.color * light.ambientIntensity, 1.0);
 	float diffuseFactor = dot(normal, -lightDirection);
 
@@ -47,7 +63,7 @@ vec4 CalcLightInternal(PointLight light, vec3 lightDirection, vec3 worldPos, vec
 		}
 	}
 
-	return (ambientColor + diffuseColor + specularColor);
+	return (ambientColor + shadowFactor * (diffuseColor + specularColor));
 }
 
 vec4 CalcPointLight(vec3 worldPos, vec3 normal)
