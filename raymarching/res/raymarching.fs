@@ -364,7 +364,7 @@ int raymarch(vec3 ro, vec3 rd)
 	float depth = texelFetch(u_DepthTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0).x;
 	float tmax = linearDepth(depth);
 	vec4 wPos = texelFetch(u_PosTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
-
+	float lastDist = 0;
 	for (int i = 0; i < maxstep; ++i)
 	{
 		vec3 p = ro + rd * t;
@@ -393,7 +393,12 @@ int raymarch(vec3 ro, vec3 rd)
 			return 1;
 			//return col;// *dot(-lightDir, n)
 		}
-		t += d.x;
+		// Make adaptive step when going around flat object
+		if (abs(lastDist - d.x) < 0.001)
+			t += 4.0 * d.x;
+		else
+			t += d.x;
+		lastDist = d.x;
 	}
 
 	WorldPosOut = color;

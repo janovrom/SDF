@@ -19,6 +19,7 @@ Mesh Objects[NUM_FILES];
 GLuint PLights[NUM_POINT_LIGHTS];
 GLuint DLights[NUM_DIRECTIONAL_LIGHTS];
 ShadowMap DirShadowMaps[NUM_DIRECTIONAL_LIGHTS];
+ShadowCube PointShadowMaps[NUM_POINT_LIGHTS];
 GLuint m_SphereVAO;
 float PLightsRadii[NUM_POINT_LIGHTS];
 
@@ -81,6 +82,7 @@ void LoadScene()
 		tin >> p.attenuation.constant >> p.attenuation.linear >> p.attenuation.exp;
 		tin >> p.pos.x >> p.pos.y >> p.pos.z;
 		p.radius = CalcPLightBSphere(p);
+		PointShadowMaps[i].Init(SHADOW_CUBE_MAP_SIZE, SHADOW_CUBE_MAP_SIZE, p);
 		glBindBuffer(GL_UNIFORM_BUFFER, PLights[i]);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight), (void*)&p, GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);

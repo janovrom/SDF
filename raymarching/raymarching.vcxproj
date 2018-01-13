@@ -218,6 +218,8 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
     </None>
     <None Include="res\null-pass.fs" />
     <None Include="res\null-pass.vs" />
+    <None Include="res\point-light-draw.fs" />
+    <None Include="res\point-light-draw.vs" />
     <None Include="res\pointlight-pass.vs" />
     <None Include="res\pointlight-pass.fs" />
     <None Include="res\raymarching.fs">

@@ -184,8 +184,8 @@ namespace Callbacks {
         if ((source == GL_DEBUG_SOURCE_API) && (type == GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR) && (id == 13))
             return;
 #endif
-        if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
-            return;
+        //if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+        //    return;
 
         switch(source) {
         case GL_DEBUG_SOURCE_API            : printf("Source  : API\n"); break;
@@ -467,7 +467,7 @@ int common_main(int window_width, int window_height, const char* window_title,
 #endif
         glGetQueryObjectui64v(OpenGL::Query[OpenGL::FRAME_START], GL_QUERY_RESULT, &gpu_frame_start);
         glGetQueryObjectui64v(OpenGL::Query[OpenGL::FRAME_END], GL_QUERY_RESULT, &gpu_frame_end);
-        Statistic::Frame::GPUTime = static_cast<int>(gpu_frame_end - gpu_frame_start);
+        Statistic::Frame::GPUTime = static_cast<int>(gpu_frame_end - gpu_frame_start) / 1000000;
 #ifndef USE_ANTTWEAKBAR
         printf("\rCPU time: %d, GPU time: %d", Statistic::Frame::CPUTime, Statistic::Frame::GPUTime);
 #endif
