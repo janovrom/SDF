@@ -24,10 +24,45 @@ const float SAW[5] = {
 	1.0, -1.0, 1.0, -1.0, 1.0
 };
 
+const vec3 SAND = vec3(1, 0.68, 0.38);
+const vec3 DARK_SAND = vec3(0.58, 0.44, 0.1);
+const vec3 STONES = vec3(0.66, 0.63, 0.55);
+const vec3 SOIL = vec3(0.29, 0.22, 0.16);
+
 //const vec3 COLORS[10] =		
 //{
 //	vec3(0.93, 0.79, 0.69)
 //};
+
+
+// Length functions
+//-------------------------------------------------------------------------
+
+float len4(vec3 p)
+{
+	vec3 p4 = pow(p, vec3(2));
+	return pow(dot(p4, p4), 0.25);
+}
+
+float len4(vec2 p)
+{
+	vec2 p4 = pow(p, vec2(2));
+	return pow(dot(p4, p4), (0.25));
+}
+
+float len8(vec3 p)
+{
+	vec3 p8 = pow(p, vec3(4));
+	return pow(dot(p8, p8), (0.125));
+}
+
+float len8(vec2 p)
+{
+	vec2 p8 = pow(p, vec2(4));
+	return pow(dot(p8, p8), (0.125));
+}
+
+//-------------------------------------------------------------------------
 
 
 // Noise
@@ -275,8 +310,8 @@ float opBlendBoxTorus(vec3 p)
 
 float opWater(vec3 p)
 {
-	float l = length(p.xz);
-	p.y += sin(l / 2.0 - u_Times[0]) / (l * 0.5);
+	float l = len4(p.xz) + length(p.xz);
+	p.y += sin(l / 2.0 - u_Times.x * 2.0) / (l * 0.125);
 	float d = sdCircle(p + vec3(0, 8.0, 0), 75.0);
 
 	return d;
@@ -290,10 +325,13 @@ float opWater(vec3 p)
 vec3 sandColor(vec3 p)
 {
 	float noise = ((cnoise(p.xz * 16.0) * sin(p.x * 16.0)) + 2.0) / 4.0;
-	vec3 c1 = vec3(1, 0.68, 0.38);
-	vec3 c2 = vec3(0.58, 0.44, 0.1);
-
-	return mix(c1, c2, noise);
+	float dnoise = ((cnoise(p.xz * 2.0) + cnoise(p.xz)) + 2.0) / 4.0;
+	dnoise *= dnoise;
+	vec3 sand = mix(SAND, DARK_SAND, 1.0-noise);
+	vec3 soil = mix(SOIL, STONES, dnoise);
+	float t = max(sign((-p.y)), 0.0) * max(0, (75-length(p.xz))) / 75.0;
+	t *= t;
+	return mix(sand, soil, t);
 }
 
 vec3 waterColor(vec3 p)
@@ -381,17 +419,17 @@ int raymarch(vec3 ro, vec3 rd)
 		{
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
-			vec3 col = vec3(1.0,0.8,0.9);
+			vec4 col = vec4(1.0,0.8,0.9, 1.0);
 			if(d.y < 1.0)
 			{
-				col = waterColor(p);
+				col = vec4(waterColor(p), 0.75);
 			}
 			else
 			{
-				col = sandColor(p);
+				col = vec4(sandColor(p), 1.0);
 			}
 			WorldPosOut = vec4(p, 1.0);
-			DiffuseOut = vec4(col, 1.0);
+			DiffuseOut = col;
 			NormalOut = vec4(n,1.0);
 			vec4 P = u_MVPMatrix * vec4(p, 1.0);
 			float zc = P.z;
