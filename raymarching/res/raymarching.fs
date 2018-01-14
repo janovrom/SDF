@@ -20,6 +20,10 @@ layout(location = 1) out vec4 DiffuseOut;
 layout(location = 2) out vec4 NormalOut;
 //layout(location = 3) out vec3 DepthOut;
 
+const float SAW[5] = {
+	1.0, -1.0, 1.0, -1.0, 1.0
+};
+
 //const vec3 COLORS[10] =		
 //{
 //	vec3(0.93, 0.79, 0.69)
@@ -68,81 +72,6 @@ float cnoise(vec2 P)
 	return 2.3 * n_xy;
 }
 
-////	Simplex 3D Noise 
-////	by Ian McEwan, Ashima Arts
-////
-//vec4 permute(vec4 x) { return mod(((x*34.0) + 1.0)*x, 289.0); }
-//vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-//
-//float snoise(vec3 v)
-//{
-//	const vec2  C = vec2(1.0 / 6.0, 1.0 / 3.0);
-//	const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
-//
-//	// First corner
-//	vec3 i = floor(v + dot(v, C.yyy));
-//	vec3 x0 = v - i + dot(i, C.xxx);
-//
-//	// Other corners
-//	vec3 g = step(x0.yzx, x0.xyz);
-//	vec3 l = 1.0 - g;
-//	vec3 i1 = min(g.xyz, l.zxy);
-//	vec3 i2 = max(g.xyz, l.zxy);
-//
-//	//  x0 = x0 - 0. + 0.0 * C 
-//	vec3 x1 = x0 - i1 + 1.0 * C.xxx;
-//	vec3 x2 = x0 - i2 + 2.0 * C.xxx;
-//	vec3 x3 = x0 - 1. + 3.0 * C.xxx;
-//
-//	// Permutations
-//	i = mod(i, 289.0);
-//	vec4 p = permute(permute(permute(
-//		i.z + vec4(0.0, i1.z, i2.z, 1.0))
-//		+ i.y + vec4(0.0, i1.y, i2.y, 1.0))
-//		+ i.x + vec4(0.0, i1.x, i2.x, 1.0));
-//
-//	// Gradients
-//	// ( N*N points uniformly over a square, mapped onto an octahedron.)
-//	float n_ = 1.0 / 7.0; // N=7
-//	vec3  ns = n_ * D.wyz - D.xzx;
-//
-//	vec4 j = p - 49.0 * floor(p * ns.z *ns.z);  //  mod(p,N*N)
-//
-//	vec4 x_ = floor(j * ns.z);
-//	vec4 y_ = floor(j - 7.0 * x_);    // mod(j,N)
-//
-//	vec4 x = x_ *ns.x + ns.yyyy;
-//	vec4 y = y_ *ns.x + ns.yyyy;
-//	vec4 h = 1.0 - abs(x) - abs(y);
-//
-//	vec4 b0 = vec4(x.xy, y.xy);
-//	vec4 b1 = vec4(x.zw, y.zw);
-//
-//	vec4 s0 = floor(b0)*2.0 + 1.0;
-//	vec4 s1 = floor(b1)*2.0 + 1.0;
-//	vec4 sh = -step(h, vec4(0.0));
-//
-//	vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-//	vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-//
-//	vec3 p0 = vec3(a0.xy, h.x);
-//	vec3 p1 = vec3(a0.zw, h.y);
-//	vec3 p2 = vec3(a1.xy, h.z);
-//	vec3 p3 = vec3(a1.zw, h.w);
-//
-//	//Normalise gradients
-//	vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
-//	p0 *= norm.x;
-//	p1 *= norm.y;
-//	p2 *= norm.z;
-//	p3 *= norm.w;
-//
-//	// Mix final noise value
-//	vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
-//	m = m * m;
-//	return 42.0 * dot(m*m, vec4(dot(p0, x0), dot(p1, x1),
-//		dot(p2, x2), dot(p3, x3)));
-//}
 //-------------------------------------------------------------------------
 
 
@@ -167,16 +96,20 @@ float opSub(float d1, float d2)
 
 
 // Model creation - distance functions.
+// Some adapted from : http://iquilezles.org/www/articles/distfunctions/distfunctions.html
 //-------------------------------------------------------------------------
 
-// Torus
-// t.x: diameter
-// t.y: thickness
-// Adapted from: http://iquilezles.org/www/articles/distfunctions/distfunctions.html
+
 float sdTorus(vec3 p, vec2 t)
 {
 	vec2 q = vec2(length(p.xz) - t.x, p.y);
 	return length(q) - t.y;
+}
+
+float sdCircle(vec3 p, float r)
+{
+	vec2 q = vec2(max(length(p.xz) - r, 0.0), p.y);
+	return length(q);
 }
 
 float sdPlane(vec3 p, vec4 n)
@@ -279,20 +212,33 @@ float smin(float a, float b, float k)
 	return mix(b, a, h) - k*h*(1.0 - h);
 }
 
-vec3 sandColor(vec3 p) 
+float sawFunction(vec3 p)
 {
-	float noise = ((cnoise(p.xz * 128.0) * sin(p.x * 64.0)) + 2.0) / 4.0;
-	vec3 c1 = vec3(1, 0.68, 0.38);
-	vec3 c2 = vec3(0.58, 0.44, 0.1);
+	float val = mod(p.x, 4);
+	float frac = fract(val);
+	int idx = int(val);
 
-	return mix(c1, c2, noise);
+	return mix(SAW[idx++], SAW[idx], frac);
+}
+
+float sawFunction(float x)
+{
+	float val = mod(x, 4);
+	float frac = fract(val);
+	int idx = int(val);
+
+	return mix(SAW[idx++], SAW[idx], frac);
 }
 
 float opDisplaceGround(vec3 p)
 {
-	//p += cnoise(p.xz / 128.0)*8.0;
-	p += cnoise(p.xz / 16.0)*2.0;
+	float y = max(min(p.y, 5.0), -15.0);
+	//y *= y;
+	float b = sdBox(p + vec3(0, 10, 10.0), vec3(25.0 + y, 5.0, 35.0 + (y)));
+	p += cnoise(p.xz / 128.0)*18.0;
+	//p += cnoise(p.xz / 16.0)*2.0;
 	//p += cnoise(p.xz * 16.0) / 64.0;
+	//p += cnoise(p.yy *.0) / 32.0;
 	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 2.0));
 	float maxDist = 128.0;
 	float total = 0;
@@ -306,16 +252,55 @@ float opDisplaceGround(vec3 p)
 	//	d1 += cnoise(p.xz / 4.0)/8.0;
 	//}
 	//d1 += /*snoise(p/32.0)+*/cnoise(p.xz/2.0)/8.0 + cnoise(p.xz / 4.0)/8.0 + cnoise(p.xz / 64.0)*16.0;
-	float d2 = 0;// opGround(p) / 10.0;
-	return d1 - d2;
+	
+	vec2 sinkPos = p.xz / 8.0;
+	float sink = dot(sinkPos, sinkPos);
+	sink = min(sink - 60.0, 0);
+	float dy = cnoise(p.yx / 24.0) / 16.0;
+	float d2 = sawFunction(dy / 4.0 +cnoise(p.xz / 512.0)) * min((length(p / 10.0)), 128.0);
+	float d3 = sawFunction(dy + (p) / 128.0 + cnoise(dy + p.xz / 164.0 + vec2((cnoise(dy + p.xz/220.0)) / 120.0) * 32.0)) * 10.0;
+	//d2 = sqrt(d2);
+	//d3 = smin(dy, d3, 16.0);
+	//d3 *= (cnoise(p.xz / 86.0) + 1.0);
+	float sm = smin(d2, d3, 32.0);
+	return smin(d1 + sm - (sink / 2.0), b, 16.0);
 }
 
 float opBlendBoxTorus(vec3 p)
 {
 	float d1 = sdBox(p, vec3(1.0, 1.5, 1.5));
 	float d2 = sdTorus(p, vec2(10.5, 2.5));
-	return smin(d1, d2, 0.15);
+	return smin(d1, d2, 32.0);
 }
+
+float opWater(vec3 p)
+{
+	float l = length(p.xz);
+	p.y += sin(l / 2.0 - u_Times[0]) / (l * 0.5);
+	float d = sdCircle(p + vec3(0, 8.0, 0), 75.0);
+
+	return d;
+}
+//-------------------------------------------------------------------------
+
+
+//-------------------------------------------------------------------------
+// Color mappings
+
+vec3 sandColor(vec3 p)
+{
+	float noise = ((cnoise(p.xz * 16.0) * sin(p.x * 16.0)) + 2.0) / 4.0;
+	vec3 c1 = vec3(1, 0.68, 0.38);
+	vec3 c2 = vec3(0.58, 0.44, 0.1);
+
+	return mix(c1, c2, noise);
+}
+
+vec3 waterColor(vec3 p)
+{
+	return vec3(0.92, 0.96, 1.0);
+}
+
 //-------------------------------------------------------------------------
 
 
@@ -338,7 +323,7 @@ float opTwistTorus(vec3 p, vec2 t)
 vec2 map(vec3 p)
 {
 	p.y -= 5.0;
-	vec2 res = vec2(opBlendBoxTorus(p), 0.0);
+	vec2 res = vec2(opWater(p), 0.0);
 	//vec2 res = vec2(opTwistTorus(p, vec2(5, 1.5)), 46.7);
 	//vec2 hp = vec2(opMapHexPrims(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
 	//vec2 hp = vec2(opRepBoxes(p, vec3(1.0)), 7.6);
@@ -346,7 +331,10 @@ vec2 map(vec3 p)
 	vec2 hp = vec2(opDisplaceGround(p), 1.0);
 	//vec2 hp = vec2(sdPlane(p, vec4(0.0, 1.0, 0.0, 0.0)), 17.32);
 	//vec2 hp = vec2(opGround(p), 17.32);
-	res = opUn(hp, hp);
+	float rs = res.x;
+	float hx = hp.x;
+	res = opUn(res, hp);
+	res.x = smin(hx, rs, 0.2);
 	return res;
 }
 
@@ -383,7 +371,8 @@ int raymarch(vec3 ro, vec3 rd)
 		float precis = 0.001 * t;
 		// Do the depth test
 		//if (t * dot(rd, u_EyeDirWorld) > tmax)
-		if (wPos.a > 0 && length(p - u_EyePosWorld) > length(wPos.xyz - u_EyePosWorld))
+		float dist = length(p - u_EyePosWorld);
+		if (wPos.a > 0 && dist > length(wPos.xyz - u_EyePosWorld))
 		{
 			return -1;
 		}
@@ -392,7 +381,15 @@ int raymarch(vec3 ro, vec3 rd)
 		{
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
-			vec3 col = sandColor(p);
+			vec3 col = vec3(1.0,0.8,0.9);
+			if(d.y < 1.0)
+			{
+				col = waterColor(p);
+			}
+			else
+			{
+				col = sandColor(p);
+			}
 			WorldPosOut = vec4(p, 1.0);
 			DiffuseOut = vec4(col, 1.0);
 			NormalOut = vec4(n,1.0);
