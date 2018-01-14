@@ -20,6 +20,11 @@ layout(location = 1) out vec4 DiffuseOut;
 layout(location = 2) out vec4 NormalOut;
 //layout(location = 3) out vec3 DepthOut;
 
+//const vec3 COLORS[10] =		
+//{
+//	vec3(0.93, 0.79, 0.69)
+//};
+
 
 // Noise
 //-------------------------------------------------------------------------
@@ -274,6 +279,15 @@ float smin(float a, float b, float k)
 	return mix(b, a, h) - k*h*(1.0 - h);
 }
 
+vec3 sandColor(vec3 p) 
+{
+	float noise = ((cnoise(p.xz * 128.0) * sin(p.x * 64.0)) + 2.0) / 4.0;
+	vec3 c1 = vec3(1, 0.68, 0.38);
+	vec3 c2 = vec3(0.58, 0.44, 0.1);
+
+	return mix(c1, c2, noise);
+}
+
 float opDisplaceGround(vec3 p)
 {
 	//p += cnoise(p.xz / 128.0)*8.0;
@@ -324,15 +338,15 @@ float opTwistTorus(vec3 p, vec2 t)
 vec2 map(vec3 p)
 {
 	p.y -= 5.0;
-	vec2 res = vec2(opBlendBoxTorus(p), 46.7);
+	vec2 res = vec2(opBlendBoxTorus(p), 0.0);
 	//vec2 res = vec2(opTwistTorus(p, vec2(5, 1.5)), 46.7);
 	//vec2 hp = vec2(opMapHexPrims(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
 	//vec2 hp = vec2(opRepBoxes(p, vec3(1.0)), 7.6);
 	//vec2 hp = vec2(opRepHexPrisms(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
-	vec2 hp = vec2(opDisplaceGround(p), 17.32);
+	vec2 hp = vec2(opDisplaceGround(p), 1.0);
 	//vec2 hp = vec2(sdPlane(p, vec4(0.0, 1.0, 0.0, 0.0)), 17.32);
 	//vec2 hp = vec2(opGround(p), 17.32);
-	res = opUn(res, hp);
+	res = opUn(hp, hp);
 	return res;
 }
 
@@ -350,8 +364,6 @@ float linearDepth(float depthSample)
 	depthSample = 2.0 * depthSample - 1.0;
 	float zLinear = 2.0 * u_Near * u_Far / (u_Far + u_Near - depthSample * (u_Far - u_Near));
 	return zLinear;
-	//float S = 2 << 32 - 1;
-	//return -S * u_Far * u_Near / (depthSample *(u_Far - u_Near) - u_Far * S);
 }
 
 int raymarch(vec3 ro, vec3 rd)
@@ -380,7 +392,7 @@ int raymarch(vec3 ro, vec3 rd)
 		{
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
-			vec3 col = vec3(0.76, 0.7, 0.5);
+			vec3 col = sandColor(p);
 			WorldPosOut = vec4(p, 1.0);
 			DiffuseOut = vec4(col, 1.0);
 			NormalOut = vec4(n,1.0);
