@@ -28,6 +28,7 @@ const vec3 SAND = vec3(1, 0.68, 0.38);
 const vec3 DARK_SAND = vec3(0.58, 0.44, 0.1);
 const vec3 STONES = vec3(0.66, 0.63, 0.55);
 const vec3 SOIL = vec3(0.29, 0.22, 0.16);
+const vec3 SKY = vec3(0.12, 0.45, 0.99);
 
 //const vec3 COLORS[10] =		
 //{
@@ -68,11 +69,86 @@ float len8(vec2 p)
 // Noise
 //-------------------------------------------------------------------------
 
+//	Classic Perlin 3D Noise 
+//	by Stefan Gustavson
+//
+vec4 permute(vec4 x) { return mod(((x*34.0) + 1.0)*x, 289.0); }
+vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+vec3 fade(vec3 t) { return t*t*t*(t*(t*6.0 - 15.0) + 10.0); }
+
+float cnoise(vec3 P)
+{
+	vec3 Pi0 = floor(P); // Integer part for indexing
+	vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+	Pi0 = mod(Pi0, 289.0);
+	Pi1 = mod(Pi1, 289.0);
+	vec3 Pf0 = fract(P); // Fractional part for interpolation
+	vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+	vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+	vec4 iy = vec4(Pi0.yy, Pi1.yy);
+	vec4 iz0 = Pi0.zzzz;
+	vec4 iz1 = Pi1.zzzz;
+
+	vec4 ixy = permute(permute(ix) + iy);
+	vec4 ixy0 = permute(ixy + iz0);
+	vec4 ixy1 = permute(ixy + iz1);
+
+	vec4 gx0 = ixy0 / 7.0;
+	vec4 gy0 = fract(floor(gx0) / 7.0) - 0.5;
+	gx0 = fract(gx0);
+	vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+	vec4 sz0 = step(gz0, vec4(0.0));
+	gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+	gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+	vec4 gx1 = ixy1 / 7.0;
+	vec4 gy1 = fract(floor(gx1) / 7.0) - 0.5;
+	gx1 = fract(gx1);
+	vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+	vec4 sz1 = step(gz1, vec4(0.0));
+	gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+	gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+	vec3 g000 = vec3(gx0.x, gy0.x, gz0.x);
+	vec3 g100 = vec3(gx0.y, gy0.y, gz0.y);
+	vec3 g010 = vec3(gx0.z, gy0.z, gz0.z);
+	vec3 g110 = vec3(gx0.w, gy0.w, gz0.w);
+	vec3 g001 = vec3(gx1.x, gy1.x, gz1.x);
+	vec3 g101 = vec3(gx1.y, gy1.y, gz1.y);
+	vec3 g011 = vec3(gx1.z, gy1.z, gz1.z);
+	vec3 g111 = vec3(gx1.w, gy1.w, gz1.w);
+
+	vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+	g000 *= norm0.x;
+	g010 *= norm0.y;
+	g100 *= norm0.z;
+	g110 *= norm0.w;
+	vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+	g001 *= norm1.x;
+	g011 *= norm1.y;
+	g101 *= norm1.z;
+	g111 *= norm1.w;
+
+	float n000 = dot(g000, Pf0);
+	float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+	float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+	float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+	float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+	float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+	float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+	float n111 = dot(g111, Pf1);
+
+	vec3 fade_xyz = fade(Pf0);
+	vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+	vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+	float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
+	return 2.2 * n_xyz;
+}
+
 //	Classic Perlin 2D Noise 
 //	by Stefan Gustavson
 //
 vec2 fade(vec2 t) { return t*t*t*(t*(t*6.0 - 15.0) + 10.0); }
-vec4 permute(vec4 x) { return mod(((x*34.0) + 1.0)*x, 289.0); }
 float cnoise(vec2 P)
 {
 	vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
@@ -322,6 +398,56 @@ float opWater(vec3 p)
 //-------------------------------------------------------------------------
 // Color mappings
 
+float IntersectSphereRay(vec3 ro, vec3 rd)
+{
+	// ray to center
+	float dotProduct = dot(-ro, rd);
+	// We add some size approximation for light.
+	float d = dotProduct*dotProduct - dot(-ro, -ro) + 1000.0*1000.0;
+
+	if (d < 0)
+		return -1.0;
+
+	float t = dotProduct - sqrt(d);
+
+	if (t < 0)
+	{
+		t = (dotProduct + sqrt(d));
+		if (t < 0)
+			return -1.0;
+	}
+
+	return t;
+}
+
+float IntersectEllipsoidRay(vec3 ro, vec3 rd, vec3 axis)
+{
+	ro = ro / axis;
+	rd = rd / axis;
+	// ray to center
+	float dotProduct = dot(ro, rd);
+	float d = dotProduct*dotProduct - dot(ro, ro);
+
+	if (d < 0)
+		return -1.0;
+
+	float t = dotProduct - sqrt(d);
+
+	if (t < 0)
+	{
+		t = (dotProduct + sqrt(d));
+		if (t < 0)
+			return -1.0;
+	}
+
+	return t;
+}
+
+float IntersectPlaneRay(vec3 ro, vec3 rd)
+{
+	return -(dot(ro, vec3(0, -1, 0)) + 1000.0) / dot(rd, vec3(0, -1, 0));
+}
+
 vec3 sandColor(vec3 p)
 {
 	float noise = ((cnoise(p.xz * 16.0) * sin(p.x * 16.0)) + 2.0) / 4.0;
@@ -337,6 +463,18 @@ vec3 sandColor(vec3 p)
 vec3 waterColor(vec3 p)
 {
 	return vec3(0.92, 0.96, 1.0);
+}
+
+vec3 cloudColor(vec3 p)
+{
+	vec2 q = p.xz / sqrt(p.y);
+	float noise = cnoise(q / 50.0 + u_Times[0] / 10.0) + cnoise(q / 10.0 + u_Times[0] / 20.0) + cnoise(q / 30.0 + u_Times[0] / 60.0);
+	noise = (noise + 3.0) / 3.0;
+	noise = clamp(noise - 0.75, 0, 1);
+	//noise *= noise;
+	//if (noise < 0.55)
+	//	noise = 0;
+	return mix(SKY, vec3(1.0), noise);
 }
 
 //-------------------------------------------------------------------------
@@ -397,25 +535,44 @@ int raymarch(vec3 ro, vec3 rd)
 	vec4 color = vec4(0);
 
 	const int maxstep = 64;
-	const vec3 lightDir = normalize(vec3(1,-1,1));
 	float t = 0;
 	float depth = texelFetch(u_DepthTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0).x;
 	float tmax = linearDepth(depth);
 	vec4 wPos = texelFetch(u_PosTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
 	float lastDist = 0;
+	float omega = 1.4;
+	float step = 0.0;
 	for (int i = 0; i < maxstep; ++i)
 	{
 		vec3 p = ro + rd * t;
-		float precis = 0.001 * t;
+		if (length(p) > 1500.0)
+			break;
+
+
 		// Do the depth test
-		//if (t * dot(rd, u_EyeDirWorld) > tmax)
 		float dist = length(p - u_EyePosWorld);
+		//if (t * dot(rd, u_EyeDirWorld) > tmax)
 		if (wPos.a > 0 && dist > length(wPos.xyz - u_EyePosWorld))
 		{
 			return -1;
 		}
 		vec2 d = map(p);
-		if (abs(d.x) < precis)
+		// Use relaxation
+		bool relaxFailed = omega > 1.0 && (abs(d.x) + lastDist) < step;
+		if (relaxFailed)
+		{
+			t -= step;
+			omega = 1.0;
+			continue;
+		}
+		else
+		{
+			step = d.x * omega;
+			omega *= 1.0055;
+		}
+		lastDist = abs(d.x);
+		float precis = abs(lastDist) / t;
+		if (0.002 > precis)
 		{
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
@@ -441,20 +598,29 @@ int raymarch(vec3 ro, vec3 rd)
 			//return col;// *dot(-lightDir, n)
 		}
 		// Make adaptive step when going around flat object
-		if (abs(lastDist - d.x) < 0.001)
-			t += 4.0 * d.x;
-		else
-			t += d.x;
-		lastDist = d.x;
+		t += step;
 	}
 
-	WorldPosOut = color;
-	DiffuseOut = vec4(0.82, 0.92, 0.93, 1.0);
-	NormalOut = color;
-	gl_FragDepth = 1.0;
-	//return color;
-	return 0;
-
+	// Didn't hit anything so hit the bounding sphere
+	float st = abs(IntersectSphereRay(ro, rd));
+	if (st > 0)
+	{
+		// We hit the skybox
+		vec3 p = ro + st * rd;
+		WorldPosOut = vec4(vec3(1000.0), 1.0);
+		DiffuseOut = vec4(cloudColor(p), 1.0);
+		NormalOut = vec4(vec3(0,1.0,0), 1.0);
+		gl_FragDepth = 1.0;
+		return 1;
+	}
+	else
+	{
+		WorldPosOut = color;
+		DiffuseOut = vec4(0.82, 0.92, 0.93, 1.0);
+		NormalOut = color;
+		gl_FragDepth = 1.0;
+		return 0;
+	}
 }
 
 void main() {
@@ -463,7 +629,7 @@ void main() {
 	//{
 	//	discard;
 	//}
-	switch (raymarch(v_Pos_worldspace, v_Normal_worldspace))
+	switch (raymarch(v_Pos_worldspace, normalize(v_Normal_worldspace)))
 	{
 	case -1:
 		//DiffuseOut = vec4(1, 0, 0, 1.0);
