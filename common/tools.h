@@ -29,7 +29,8 @@ namespace Variables {
     }
 
     namespace Shader {              // Shader default variables
-        int   Int       =    0;     // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
+		int   Int		= 0;     // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
+		int   Int2      = 0;     // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
         float Float     = 0.0f;     // Value will be automatically passed to 'u_UserFloatInt' uniform in all shaders
 
         glm::vec4 SceneRotation = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);    // Scene orientation
@@ -73,7 +74,8 @@ namespace OpenGL {
             ModelViewMatrixInv	= glGetUniformLocation(id, "u_ModelViewMatrixInverse");
             ProjectionMatrix	= glGetUniformLocation(id, "u_ProjectionMatrix");
             ZOffset				= glGetUniformLocation(id, "u_ZOffset");
-            UserVariableInt		= glGetUniformLocation(id, "u_UserVariableInt");
+			UserVariableInt		= glGetUniformLocation(id, "u_UserVariableInt");
+			UserVariableInt2	= glGetUniformLocation(id, "u_UserVariableInt2");
             UserVariableFloat	= glGetUniformLocation(id, "u_UserVariableFloat");
             FrameCounter		= glGetUniformLocation(id, "u_FrameCounter");
 			Near				= glGetUniformLocation(id, "u_Near");
@@ -94,6 +96,7 @@ namespace OpenGL {
         GLint  ProjectionMatrix;
         GLint  ZOffset;
         GLint  UserVariableInt;
+		GLint	UserVariableInt2;
         GLint  UserVariableFloat;
         GLint  FrameCounter;
 		GLint	Near;

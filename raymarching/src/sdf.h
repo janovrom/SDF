@@ -19,17 +19,16 @@ struct AABB
 	float sizez() { return max.z - min.z; }
 };
 
-class SDF
+class ComputeShader
 {
 public:
 	void ComputeSDF(GLuint posBuffer, GLuint uvBuffer, GLuint idxBuffer, GLuint tex, glm::vec3 origin, glm::vec3 size, glm::ivec2 texSize);
-	void InitShader();
-	void LaunchComputeShader(GLuint tex);
+	void InitShader(const char* file, glm::ivec3 sizes);
+	void LaunchComputeShader(GLuint tex, GLuint format);
 
 private:
 	GLuint m_program	= 0;
-	GLuint m_Textures[3];
-	GLuint m_buffer3d;
+	glm::ivec3 m_sizes;
 
 };
 

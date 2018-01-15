@@ -4,6 +4,7 @@
 #define __SCENE_H__
 
 #include "mesh.h"
+#include "sdf.h"
 #include <iostream>
 #include "../../common/glm/gtc/matrix_transform.hpp"
 //#include "lights.h"
@@ -21,7 +22,9 @@ GLuint DLights[NUM_DIRECTIONAL_LIGHTS];
 ShadowMap DirShadowMaps[NUM_DIRECTIONAL_LIGHTS];
 ShadowCube PointShadowMaps[NUM_POINT_LIGHTS];
 GLuint m_SphereVAO;
+GLuint m_Noise;
 float PLightsRadii[NUM_POINT_LIGHTS];
+ComputeShader m_NoiseShader;
 
 
 std::string files[NUM_FILES] =
@@ -103,6 +106,19 @@ void LoadScene()
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 	tin.close();
+
+	// Generate noise texture
+	glGenTextures(1, &m_Noise);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_Noise);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 1024, 1024, 0, GL_RED, GL_FLOAT, NULL);
+	// Generate noise
+	printOpenGLError();
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void RenderSceneGeometry(GLuint program)

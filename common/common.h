@@ -355,7 +355,7 @@ int common_main(int window_width, int window_height, const char* window_title,
         TwAddVarRW(menu, "offset_z", TW_TYPE_FLOAT, &Variables::Shader::SceneZOffset, " group='Scene' label='offset z' min=0 max=1000 step=0.5 keyIncr=Z keyDecr=z help='Scene translation.' ");
 
     TwAddVarRW(menu, "int_user_variable", TW_TYPE_INT32, &Variables::Shader::Int, " group='Shader variables' label='int variable' min=-10000 max=10000 step=1 keyIncr=I keyDecr=i help='User integer variable.' ");
-    TwAddVarRW(menu, "float_user_variable", TW_TYPE_FLOAT, &Variables::Shader::Float, " group='Shader variables' label='float variable' min=0 max=1 step=0.01 keyIncr=F keyDecr=f help='User floating-point variable.' ");
+    TwAddVarRW(menu, "int_user_variable_2", TW_TYPE_INT32, &Variables::Shader::Int2, " group='Shader variables' label='Switch sin off' min=0 max=1 step=1 keyIncr=F keyDecr=f help='Switch sine to interpolation.' ");
     TwAddVarRO(menu, "user_stat_int0", TW_TYPE_INT32, &Variables::Menu::Int, "group='User variables' label='user int 0' ");
     TwAddVarRO(menu, "user_stat_int1", TW_TYPE_INT32, &Variables::Menu::Int1, "group='User variables' label='user int 1' ");
     TwAddVarRO(menu, "user_stat_float0", TW_TYPE_FLOAT, &Variables::Menu::Float, "group='User variables' label='user float 0' ");
@@ -428,6 +428,8 @@ int common_main(int window_width, int window_height, const char* window_title,
                         glUniform1f(program.ZOffset, Variables::Shader::SceneZOffset);
                     if (program.UserVariableInt > -1) 
                         glUniform1i(program.UserVariableInt, Variables::Shader::Int);
+					if (program.UserVariableInt2 > -1)
+						glUniform1i(program.UserVariableInt2, Variables::Shader::Int2);
                     if (program.UserVariableFloat > -1) 
                         glUniform1f(program.UserVariableFloat, Variables::Shader::Float);
                     if (program.FrameCounter > -1) 
