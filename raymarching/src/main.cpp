@@ -132,12 +132,15 @@ void DSGeometryPass()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// Clear frame buffer and set OpenGL states
+	// Clear the color
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Clear the depth
+	//glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+	//glClear(GL_DEPTH_BUFFER_BIT);
 	printOpenGLError();
 	  
-	glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
 	printOpenGLError();
 	// Update shader program  
 	glUseProgram(g_Program); 
@@ -147,8 +150,6 @@ void DSGeometryPass()
 	glUseProgram(0);  
 	printOpenGLError();
 	glDisable(GL_BLEND);
-	
-
 	   
 	// Draw screen quad for raymarching 
 	glDisable(GL_DEPTH_TEST);
