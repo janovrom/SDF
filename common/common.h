@@ -354,9 +354,11 @@ int common_main(int window_width, int window_height, const char* window_title,
     if (bShowZOffset || bShowRotation)
         TwAddVarRW(menu, "offset_z", TW_TYPE_FLOAT, &Variables::Shader::SceneZOffset, " group='Scene' label='offset z' min=0 max=1000 step=0.5 keyIncr=Z keyDecr=z help='Scene translation.' ");
 
-    TwAddVarRW(menu, "int_user_variable", TW_TYPE_INT32, &Variables::Shader::Int, " group='Shader variables' label='int variable' min=-10000 max=10000 step=1 keyIncr=I keyDecr=i help='User integer variable.' ");
-    TwAddVarRW(menu, "int_user_variable_2", TW_TYPE_INT32, &Variables::Shader::Int2, " group='Shader variables' label='Switch sin off' min=0 max=1 step=1 keyIncr=F keyDecr=f help='Switch sine to interpolation.' ");
-    TwAddVarRO(menu, "user_stat_int0", TW_TYPE_INT32, &Variables::Menu::Int, "group='User variables' label='user int 0' ");
+    TwAddVarRW(menu, "int_user_variable", TW_TYPE_INT32, &Variables::Shader::Int, " group='Shader variables' label='Use noise texture' min=-10000 max=10000 step=1 keyIncr=I keyDecr=i help='User integer variable.' ");
+	TwAddVarRW(menu, "int_user_variable_2", TW_TYPE_INT32, &Variables::Shader::Int2, " group='Shader variables' label='Switch sin off' min=0 max=1 step=1 keyIncr=F keyDecr=f help='Switch sine to interpolation.' ");
+	TwAddVarRW(menu, "int_user_variable_3", TW_TYPE_INT32, &Variables::Shader::RR, " group='Shader variables' label='Enable refle/refra' min=0 max=1 step=1 keyIncr=F keyDecr=f help='Enable reflection and refraction for water.' ");
+	
+	TwAddVarRO(menu, "user_stat_int0", TW_TYPE_INT32, &Variables::Menu::Int, "group='User variables' label='user int 0' ");
     TwAddVarRO(menu, "user_stat_int1", TW_TYPE_INT32, &Variables::Menu::Int1, "group='User variables' label='user int 1' ");
     TwAddVarRO(menu, "user_stat_float0", TW_TYPE_FLOAT, &Variables::Menu::Float, "group='User variables' label='user float 0' ");
     TwAddVarRO(menu, "user_stat_float1", TW_TYPE_FLOAT, &Variables::Menu::Float1, "group='User variables' label='user float 1' ");

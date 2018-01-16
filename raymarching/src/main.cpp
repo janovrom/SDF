@@ -414,7 +414,18 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DrawPointLightProgram, "point-light-draw.vs", NULL, NULL, NULL, "point-light-draw.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_ShadowProgram, "shadow-pass.vs", NULL, NULL, NULL, "shadow-pass.fs");
-	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
+	std::string raymarchPreprocessorMacros = "";
+	if (Variables::Shader::Int == 1)
+		raymarchPreprocessorMacros += "#define NOISE_TEXTURE\n";
+	if (Variables::Shader::Int2 == 1)
+		raymarchPreprocessorMacros += "#define SINE Sine\n";
+	else
+		raymarchPreprocessorMacros += "#define SINE sin\n";
+
+	if (Variables::Shader::RR == 1)
+		raymarchPreprocessorMacros += "#define REFLE_REFRA\n";
+
+	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs", raymarchPreprocessorMacros.c_str());
 	
 	m_NoiseShader.InitShader("compute-noise.shader", glm::ivec3(1024, 1024, 1));
 	m_NoiseShader.LaunchComputeShader(m_Noise, GL_R32F);

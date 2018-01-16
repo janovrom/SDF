@@ -28,10 +28,11 @@ namespace Variables {
         glm::mat4 Projection;
     }
 
-    namespace Shader {              // Shader default variables
-		int   Int		= 0;     // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
-		int   Int2      = 0;     // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
-        float Float     = 0.0f;     // Value will be automatically passed to 'u_UserFloatInt' uniform in all shaders
+    namespace Shader {          // Shader default variables
+		int		Int		= 0;    // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
+		int		Int2    = 0;    // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
+		int		RR		= 0;	// Use reflection and refraction
+        float	Float   = 0.0f;     // Value will be automatically passed to 'u_UserFloatInt' uniform in all shaders
 
         glm::vec4 SceneRotation = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);    // Scene orientation
         GLfloat   SceneZOffset  = 2.0f;                                 // Scene translation along z-axis
