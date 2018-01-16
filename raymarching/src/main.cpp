@@ -6,7 +6,6 @@
 #include "gbuffer.h"
 #include "scene.h"
 #include "glerror.h"
-#include "sdf.h"
 #include "../../common/glm/gtc/matrix_transform.hpp"
 #include "../../common/glm/glm.hpp" 
 #include "../../common/GLEW/glew.h" 
@@ -23,7 +22,7 @@ GLuint		g_ShadowProgram;
 GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
-SDF			m_sdf;
+ComputeShader			m_sdf;
 double		g_Time;
  
 void updateUserData()
@@ -160,6 +159,9 @@ void DSGeometryPass()
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
 	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_PosTex"), 1);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, m_Noise);
+	glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_NoiseTex"), 2);
 	glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
 	Tools::DrawScreenQuad(); 
 	glBindTexture(GL_TEXTURE_2D,  0);  
@@ -322,6 +324,9 @@ void DSIntermediateLightPass()
 			0, WINDOW_HEIGHT - (i + 1) * QHeight, QWidth, QHeight);
 	}
 	
+	glBindTexture(GL_TEXTURE_2D, m_Noise);
+	Tools::Texture::Show2DTexture(m_Noise,
+		WINDOW_WIDTH - 2 * QWidth, WINDOW_HEIGHT - 1 * QHeight, QWidth, QHeight);
 
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR));
 	Tools::Texture::Show2DTexture(m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_COLOR),
@@ -409,8 +414,21 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DrawPointLightProgram, "point-light-draw.vs", NULL, NULL, NULL, "point-light-draw.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_ShadowProgram, "shadow-pass.vs", NULL, NULL, NULL, "shadow-pass.fs");
-	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs");
-	m_sdf.InitShader();
+	std::string raymarchPreprocessorMacros = "";
+	if (Variables::Shader::Int == 1)
+		raymarchPreprocessorMacros += "#define NOISE_TEXTURE\n";
+	if (Variables::Shader::Int2 == 1)
+		raymarchPreprocessorMacros += "#define SINE Sine\n";
+	else
+		raymarchPreprocessorMacros += "#define SINE sin\n";
+
+	if (Variables::Shader::RR == 1)
+		raymarchPreprocessorMacros += "#define REFLE_REFRA\n";
+
+	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs", raymarchPreprocessorMacros.c_str());
+	
+	m_NoiseShader.InitShader("compute-noise.shader", glm::ivec3(1024, 1024, 1));
+	m_NoiseShader.LaunchComputeShader(m_Noise, GL_R32F);
 }
 
 void initGUI(TwBar* menu)

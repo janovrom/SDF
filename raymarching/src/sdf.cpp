@@ -1,35 +1,40 @@
 #include "sdf.h"
 
-void SDF::ComputeSDF(GLuint posBuffer, GLuint uvBuffer, GLuint idxBuffer, GLuint tex, glm::vec3 origin, glm::vec3 size, glm::ivec2 texSize)
+void ComputeShader::ComputeSDF(GLuint posBuffer, GLuint uvBuffer, GLuint idxBuffer, GLuint tex, glm::vec3 origin, glm::vec3 size, glm::ivec2 texSize)
 {
+	//glGenTextures(3, &m_Textures[0]);
+	//glGenTextures(1, &m_buffer3d);
+	//glBindTexture(GL_TEXTURE_3D, m_buffer3d);
+	//glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, 64, 64, 64, 0, GL_RED, GL_FLOAT, NULL);
+	//glBindTexture(GL_TEXTURE_2D, 0);
 
-	glm::ivec2 grid[64][64][64]; // for now let's have regular grid
-	size = size / 64.0f;
+	//glm::ivec2 grid[64][64][64]; // for now let's have regular grid
+	//size = size / 64.0f;
 
-	// Bind positions
-	glBindImageTexture(0, posBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_BUFFER, m_Textures[0]);
-	//glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, posBuffer);
-	printOpenGLError();
-	// Bind uvs
-	glBindImageTexture(1, uvBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_BUFFER, m_Textures[1]);
-	//glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, uvBuffer);
-	printOpenGLError();
-	// Bind indices
-	glBindImageTexture(2, idxBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
-	//glActiveTexture(GL_TEXTURE2);
-	//glBindTexture(GL_TEXTURE_BUFFER, m_Textures[2]);
-	//glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, idxBuffer);
-	printOpenGLError();
-	//// Bind texture
-	glBindImageTexture(3, m_buffer3d, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32F);
-	//glBindImageTexture(3, tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+	//// Bind positions
+	//glBindImageTexture(0, posBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+	////glActiveTexture(GL_TEXTURE0);
+	////glBindTexture(GL_TEXTURE_BUFFER, m_Textures[0]);
+	////glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, posBuffer);
+	//printOpenGLError();
+	//// Bind uvs
+	//glBindImageTexture(1, uvBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	////glActiveTexture(GL_TEXTURE1);
+	////glBindTexture(GL_TEXTURE_BUFFER, m_Textures[1]);
+	////glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, uvBuffer);
+	//printOpenGLError();
+	//// Bind indices
+	//glBindImageTexture(2, idxBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+	////glActiveTexture(GL_TEXTURE2);
+	////glBindTexture(GL_TEXTURE_BUFFER, m_Textures[2]);
+	////glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, idxBuffer);
+	//printOpenGLError();
+	////// Bind texture
+	//glBindImageTexture(3, m_buffer3d, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32F);
+	////glBindImageTexture(3, tex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 
 
-	// For each triangle, do rasterization
+	//// For each triangle, do rasterization
 }
 
 void CheckProgramInfoLog(GLuint program_id)
@@ -193,25 +198,22 @@ bool CreateComputeShaderProgramFromFile(GLuint& programId, const char* cs, const
 	return true;
 }
 
-void SDF::InitShader()
+void ComputeShader::InitShader(const char* file, glm::ivec3 sizes)
 {
-	bool ret = CreateComputeShaderProgramFromFile(m_program, "compute-sdf.shader", NULL);
-	glGenTextures(3, &m_Textures[0]);
-	glGenTextures(1, &m_buffer3d);
-	glBindTexture(GL_TEXTURE_3D, m_buffer3d);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, 64, 64, 64, 0, GL_RED, GL_FLOAT, NULL);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	bool ret = CreateComputeShaderProgramFromFile(m_program, file, NULL);
+	m_sizes = sizes;
 }
 
-void SDF::LaunchComputeShader(GLuint tex)
+void ComputeShader::LaunchComputeShader(GLuint tex, GLuint format)
 {
 	glUseProgram(m_program);
-	glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE, format);
 	printOpenGLError();
-	glDispatchCompute((GLuint)800, (GLuint)600, 1);
+	glDispatchCompute(m_sizes.x, m_sizes.y, m_sizes.z);
 	printOpenGLError();
 
 	// make sure writing to image has finished before read
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	printOpenGLError();
+	glUseProgram(0);
 }

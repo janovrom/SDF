@@ -205,6 +205,7 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
     <ClCompile Include="src\tga.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\compute-noise.shader" />
     <None Include="res\compute-sdf.shader">
       <FileType>Document</FileType>
     </None>

@@ -8,12 +8,15 @@ in vec3 v_Pos_worldspace;
 
 uniform sampler2D u_DepthTex;
 uniform sampler2D u_PosTex;
+uniform sampler2D u_NoiseTex;
 uniform mat4 u_MVPMatrix;
 uniform float u_Near;
 uniform float u_Far;
 uniform vec4 u_Times;
 uniform vec3 u_EyeDirWorld;
 uniform vec3 u_EyePosWorld;
+uniform int u_UserVariableInt;
+uniform int u_UserVariableInt2;
 
 layout(location = 0) out vec4 WorldPosOut;
 layout(location = 1) out vec4 DiffuseOut;
@@ -22,6 +25,10 @@ layout(location = 2) out vec4 NormalOut;
 
 const float SAW[5] = {
 	1.0, -1.0, 1.0, -1.0, 1.0
+};
+
+const float SINUS[9] = {
+	0.0, 0.5, 0.707, 0.866, 1.0, 0.866, 0.707, 0.5, 0.0
 };
 
 const vec3 SAND = vec3(1, 0.68, 0.38);
@@ -35,6 +42,19 @@ const vec3 SKY = vec3(0.12, 0.45, 0.99);
 //	vec3(0.93, 0.79, 0.69)
 //};
 
+float Sine(float p)
+{
+	float val = mod(4.0 * p / 3.1415, 8.0);
+	float frac = fract(val);
+	int idx = int(val);
+
+	return mix(SINUS[idx++], SINUS[idx], frac);
+}
+
+float Noise2D(vec2 p)
+{
+	return texture(u_NoiseTex, p).r;
+}
 
 // Length functions
 //-------------------------------------------------------------------------
@@ -217,10 +237,17 @@ float sdTorus(vec3 p, vec2 t)
 	return length(q) - t.y;
 }
 
+float sdCylinder(vec3 p, vec2 h)
+{
+	vec2 d = abs(vec2(length(p.xz), p.y)) - h;
+	return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
+
 float sdCircle(vec3 p, float r)
 {
-	vec2 q = vec2(max(length(p.xz) - r, 0.0), p.y);
-	return length(q);
+	return sdCylinder(p, vec2(r, 0.5));
+	//vec2 q = vec2(max(length(p.xz) - r, 0.0), p.y);
+	//return length(q);
 }
 
 float sdPlane(vec3 p, vec4 n)
@@ -271,24 +298,6 @@ float opMapHexPrims(vec3 p, vec3 c)
 	vec2 q = floor(p).xz; // squares 5x5
 	float h = sin(q.x) + sin(q.y);
 	return max(p.y - h, 0.0);
-	//vec2 tl = q +	vec2(1.0, -1.0) * 5.0;
-	//vec2 t = q +	vec2(1.0, 0.0) * 5.0;
-	//vec2 tr = q +	vec2(1.0, 1.0) * 5.0;
-	//vec2 bl = q +	vec2(-1.0, -1.0) * 5.0;
-	//vec2 b = q +	vec2(-1.0, 0.0) * 5.0;
-	//vec2 br = q +	vec2(-1.0, 1.0) * 5.0;
-
-	//float tmin = min(dot(tl, p.xz), min(dot(t, p.xz), dot(tr, p.xz)));
-	//float bmin = min(dot(bl, p.xz), min(dot(b, p.xz), dot(br, p.xz)));
-	//float pdis = dot(q, p.xz);
-	//if (pdis < tmin && pdis < bmin)
-	//{
-	//	return max(sin(p.x), 5.0);
-	//}
-	//else
-	//{
-	//	return sqrt(min(tmin, bmin));
-	//}
 }
 //-------------------------------------------------------------------------
 
@@ -317,8 +326,6 @@ float opGround(vec3 p)
 
 float smin(float a, float b, float k)
 {
-	//float s = 0.5 + 0.5*tanh(b);
-	//return a * s + (1 - s) * b;
 	float h = clamp(0.5 + 0.5*(b - a) / k, 0.0, 1.0);
 	return mix(b, a, h) - k*h*(1.0 - h);
 }
@@ -345,35 +352,29 @@ float opDisplaceGround(vec3 p)
 {
 	float y = max(min(p.y, 5.0), -15.0);
 	//y *= y;
-	float b = sdBox(p + vec3(0, 10, 10.0), vec3(25.0 + y, 5.0, 35.0 + (y)));
-	p += cnoise(p.xz / 128.0)*18.0;
-	//p += cnoise(p.xz / 16.0)*2.0;
-	//p += cnoise(p.xz * 16.0) / 64.0;
-	//p += cnoise(p.yy *.0) / 32.0;
+	float b = sdBox(p + vec3(0, 10, 15.0), vec3(25.0 + y, 5.0, 40.0 + (y)));
 	float d1 = sdPlane(p, vec4(0.0, 1.0, 0.0, 2.0));
-	float maxDist = 128.0;
-	float total = 0;
-	float frequency = 1;
-	float amplitude = 1;
-	float persistence = 0.25;
-	float maxValue = 0;  // Used for normalizing result to 0.0 - 1.0
-
-	//if (d1 < 8.0)
-	//{
-	//	d1 += cnoise(p.xz / 4.0)/8.0;
-	//}
-	//d1 += /*snoise(p/32.0)+*/cnoise(p.xz/2.0)/8.0 + cnoise(p.xz / 4.0)/8.0 + cnoise(p.xz / 64.0)*16.0;
-	
 	vec2 sinkPos = p.xz / 8.0;
 	float sink = dot(sinkPos, sinkPos);
 	sink = min(sink - 60.0, 0);
-	float dy = cnoise(p.yx / 24.0) / 16.0;
-	float d2 = sawFunction(dy / 4.0 +cnoise(p.xz / 512.0)) * min((length(p / 10.0)), 128.0);
-	float d3 = sawFunction(dy + (p) / 128.0 + cnoise(dy + p.xz / 164.0 + vec2((cnoise(dy + p.xz/220.0)) / 120.0) * 32.0)) * 10.0;
-	//d2 = sqrt(d2);
-	//d3 = smin(dy, d3, 16.0);
-	//d3 *= (cnoise(p.xz / 86.0) + 1.0);
+	float dy = 0.0;
+	float d2 = 0.0;
+	float d3 = 0.0;
+
+#ifdef NOISE_TEXTURE
+	p += Noise2D((p.xz + 0.5) / 128.0) * 18.0;
+	dy = Noise2D(p.yx / 24.0) / 16.0;
+	d2 = sawFunction(dy / 4.0 + Noise2D(p.xz / 512.0)) * min((length(p / 10.0)), 128.0);
+	d3 = sawFunction(dy + (p) / 128.0 + Noise2D(dy + p.xz / 164.0 + vec2((Noise2D(dy + p.xz / 220.0)) / 120.0) * 32.0)) * 10.0;
+#else
+	p += cnoise(p.xz / 128.0)*18.0;
+	dy = cnoise(p.yx / 24.0) / 16.0;
+	d2 = sawFunction(dy /4.0 +cnoise(p.xz / 512.0)) * min((length(p / 10.0)), 128.0);
+	d3 = sawFunction(dy + (p) / 128.0 + cnoise(dy + p.xz / 164.0 + vec2((cnoise(dy + p.xz/220.0)) / 120.0) * 32.0)) * 10.0;
+#endif
+	
 	float sm = smin(d2, d3, 32.0);
+	//return d1 + sm - (sink / 2.0);
 	return smin(d1 + sm - (sink / 2.0), b, 16.0);
 }
 
@@ -387,7 +388,7 @@ float opBlendBoxTorus(vec3 p)
 float opWater(vec3 p)
 {
 	float l = len4(p.xz) + length(p.xz);
-	p.y += sin(l / 2.0 - u_Times.x * 2.0) / (l * 0.125);
+	p.y += SINE(l / 2.0 - u_Times.x * 2.0) / (l * 0.125);
 	float d = sdCircle(p + vec3(0, 8.0, 0), 75.0);
 
 	return d;
@@ -450,12 +451,25 @@ float IntersectPlaneRay(vec3 ro, vec3 rd)
 
 vec3 sandColor(vec3 p)
 {
-	float noise = ((cnoise(p.xz * 16.0) * sin(p.x * 16.0)) + 2.0) / 4.0;
-	float dnoise = ((cnoise(p.xz * 2.0) + cnoise(p.xz)) + 2.0) / 4.0;
+	float noise = 0.0;
+	float dnoise = 0.0;
+#ifdef NOISE_TEXTURE
+	p /= 24.0;
+	noise = ((Noise2D(p.xz / 16.0) * SINE(p.x / 16.0)) + 2.0) / 4.0;
+	dnoise = ((Noise2D(p.xz / 2.0) + Noise2D(p.xz)) + 2.0) / 4.0;
+#else
+	noise = ((cnoise(p.xz * 16.0) * SINE(p.x * 16.0)) + 2.0) / 4.0;
+	dnoise = ((cnoise(p.xz * 2.0) + cnoise(p.xz)) + 2.0) / 4.0;
+#endif
+
 	dnoise *= dnoise;
 	vec3 sand = mix(SAND, DARK_SAND, 1.0-noise);
 	vec3 soil = mix(SOIL, STONES, dnoise);
-	float t = max(sign((-p.y)), 0.0) * max(0, (75-length(p.xz))) / 75.0;
+	float l = length(p.xz);
+#ifdef NOISE_TEXTURE
+		l *= 24.0;
+#endif
+	float t = max(sign((-p.y)), 0.0) * max(0, (75-l)) / 75.0;
 	t *= t;
 	return mix(sand, soil, t);
 }
@@ -468,12 +482,15 @@ vec3 waterColor(vec3 p)
 vec3 cloudColor(vec3 p)
 {
 	vec2 q = p.xz / sqrt(p.y);
-	float noise = cnoise(q / 50.0 + u_Times[0] / 10.0) + cnoise(q / 10.0 + u_Times[0] / 20.0) + cnoise(q / 30.0 + u_Times[0] / 60.0);
+	float noise = 0.0;
+#ifdef NOISE_TEXTURE
+	noise = Noise2D(q / 500.0 + u_Times[0] / 1000.0) + Noise2D(q / 100.0 + u_Times[0] / 2000.0) + Noise2D(q / 300.0 + u_Times[0] / 6000.0);
+#else
+	noise = cnoise(q / 50.0 + u_Times[0] / 10.0) + cnoise(q / 10.0 + u_Times[0] / 20.0) + cnoise(q / 30.0 + u_Times[0] / 60.0);
+#endif
+	
 	noise = (noise + 3.0) / 3.0;
 	noise = clamp(noise - 0.75, 0, 1);
-	//noise *= noise;
-	//if (noise < 0.55)
-	//	noise = 0;
 	return mix(SKY, vec3(1.0), noise);
 }
 
@@ -500,13 +517,7 @@ vec2 map(vec3 p)
 {
 	p.y -= 5.0;
 	vec2 res = vec2(opWater(p), 0.0);
-	//vec2 res = vec2(opTwistTorus(p, vec2(5, 1.5)), 46.7);
-	//vec2 hp = vec2(opMapHexPrims(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
-	//vec2 hp = vec2(opRepBoxes(p, vec3(1.0)), 7.6);
-	//vec2 hp = vec2(opRepHexPrisms(p, 4.0 * vec3(1.0, 1.0, 0.86)), 7.69);
 	vec2 hp = vec2(opDisplaceGround(p), 1.0);
-	//vec2 hp = vec2(sdPlane(p, vec4(0.0, 1.0, 0.0, 0.0)), 17.32);
-	//vec2 hp = vec2(opGround(p), 17.32);
 	float rs = res.x;
 	float hx = hp.x;
 	res = opUn(res, hp);
@@ -528,6 +539,88 @@ float linearDepth(float depthSample)
 	depthSample = 2.0 * depthSample - 1.0;
 	float zLinear = 2.0 * u_Near * u_Far / (u_Far + u_Near - depthSample * (u_Far - u_Near));
 	return zLinear;
+}
+
+vec2 mapRefra(vec3 p)
+{
+	p.y -= 5.0;
+	return vec2(opDisplaceGround(p), 1.0);
+}
+
+vec3 raymarchReflected(vec3 ro, vec3 rd, vec3 defaultColor)
+{
+	// Didn't hit anything so hit the bounding sphere
+	float st = (IntersectSphereRay(ro, rd));
+	if (st > 0)
+	{
+		// We hit the skybox
+		vec3 p = ro + st * rd;
+		WorldPosOut = vec4(vec3(1000.0), 1.0);
+		return cloudColor(p);
+	}
+	else
+	{
+		return vec3(1.0, 0,0);
+	}
+}
+
+// Raymarch only over SDF
+vec3 raymarchRefracted(vec3 ro, vec3 rd, vec3 defaultColor)
+{
+	const int maxstep = 8;
+	float t = 0;
+	float lastDist = 0;
+	float omega = 1.4;
+	float step = 0.0;
+	for (int i = 0; i < maxstep; ++i)
+	{
+		vec3 p = ro + rd * t;
+		// No hit, go to skybox
+		if (length(p) > 1500.0)
+			break;
+
+		vec2 d = mapRefra(p);
+		// Use relaxation
+		//bool relaxFailed = omega > 1.0 && (abs(d.x) + lastDist) < step;
+		//if (relaxFailed)
+		//{
+		//	t -= step;
+		//	omega = 1.0;
+		//	continue;
+		//}
+		//else
+		//{
+		//	step = (d.x) * omega;
+		//	omega *= 1.0055;
+		//}
+		step = d.x;
+		lastDist = abs(d.x);
+		float precis = abs(lastDist) / t;
+		if (0.002 > precis)
+		{
+			// I have got a hit
+			vec4 col = vec4(1.0, 0.8, 0.9, 1.0);
+			if (d.y < 0.5)
+			{
+				return vec3(1.0,0,0);
+			}
+			else
+			{
+				return sandColor(p);
+			}
+		}
+		// Make adaptive step when going around flat object
+		t += step;
+	}
+
+	return defaultColor;
+}
+
+float schlickApproximation(vec3 v, vec3 n, float n1, float n2)
+{
+	float cosTheta = dot(v, n);
+	float r0 = pow((n1 - n2) / (n1 + n2), 2.0);
+	return clamp(r0 + (1 - r0) * pow(1 - cosTheta, 5), 0.0, 1.0);
 }
 
 int raymarch(vec3 ro, vec3 rd)
@@ -577,9 +670,21 @@ int raymarch(vec3 ro, vec3 rd)
 			vec3 n = normal(p, t);
 			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
 			vec4 col = vec4(1.0,0.8,0.9, 1.0);
-			if(d.y < 1.0)
+			if(d.y < 0.5)
 			{
-				col = vec4(waterColor(p), 0.75);
+				// Water has reflection and refraction - do it and accumulate
+#ifdef REFLE_REFRA
+				vec3 refracted = normalize(refract(-rd, n, 1.3333));
+				vec3 reflected = normalize(reflect(-rd, n));
+				vec3 colWater = waterColor(p);
+				vec3 colRefra = raymarchRefracted(p + refracted * 0.1, refracted, colWater) * colWater;
+				vec3 colRefle = raymarchReflected(p + reflected * 0.1, reflected, colWater);
+				float st = schlickApproximation(-rd, n, 1.00029, 1.3333);
+				vec3 colResult = mix(colRefra, colRefle, st);
+				col = vec4(colResult, 1.0);
+#else
+				col = vec4(waterColor(p), 1.0);
+#endif
 			}
 			else
 			{
@@ -616,7 +721,7 @@ int raymarch(vec3 ro, vec3 rd)
 	else
 	{
 		WorldPosOut = color;
-		DiffuseOut = vec4(0.82, 0.92, 0.93, 1.0);
+		DiffuseOut = vec4(1,0,0, 1.0);
 		NormalOut = color;
 		gl_FragDepth = 1.0;
 		return 0;
@@ -624,25 +729,17 @@ int raymarch(vec3 ro, vec3 rd)
 }
 
 void main() {
-	//FragColor = vec4((v_Vertex.x + 1) / 2.0, (v_Vertex.y + 1) / 2.0, 0.0, 0.2);
-	//if (raymarch(v_Pos_worldspace, v_Normal_worldspace) < 0)
-	//{
-	//	discard;
-	//}
 	switch (raymarch(v_Pos_worldspace, normalize(v_Normal_worldspace)))
 	{
 	case -1:
-		//DiffuseOut = vec4(1, 0, 0, 1.0);
 		discard;
 		break;
 	case 0:
 		DiffuseOut = vec4(0, 1, 0, 1.0);
 		break;
 	case 1:
-		//DiffuseOut = vec4(0, 0, 1, 1.0);
 		break;
 	default:
 		break;
 	}
-	//DiffuseOut = vec3(0.82, 0.92, 0.93);
 }
