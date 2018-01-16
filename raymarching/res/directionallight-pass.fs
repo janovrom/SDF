@@ -11,7 +11,7 @@ struct DirectionalLight
 uniform sampler2D u_PosTex;
 uniform sampler2D u_ColTex;
 uniform sampler2D u_NormTex;
-uniform sampler2DShadow u_lightDepth;
+uniform sampler2D u_lightDepth;
 uniform vec3 u_EyePosWorld;
 uniform mat4 u_LightView;
 uniform mat4  u_LightProjection;
@@ -28,8 +28,17 @@ float CalcShadowFactor(vec4 pos_lightSpace)
 {
 	vec3 proj = pos_lightSpace.xyz / pos_lightSpace.w;
 	proj = 0.5 * proj + 0.5;
-	return texture(u_lightDepth, proj);
+	proj = clamp(proj, 0.0, 1.0);
+	float depth = texture(u_lightDepth, proj.xy).r;
 
+	if (proj.z < depth + 0.0001)
+	{
+		return 1.0;
+	}
+	else
+	{
+		return 0.25;
+	}
 }
 
 vec4 CalcLightInternal(DirectionalLight light, vec3 lightDirection, vec3 worldPos, vec3 normal)

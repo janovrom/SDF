@@ -4,8 +4,8 @@
 bool ShadowMap::Init(unsigned int shadowMapWidth, unsigned int shadowMapHeight, DirectionalLight d)
 {
 	m_light = d;
-	m_ortho = glm::ortho(-300.0f, 300.0f, -300.0f, 300.0f, -200.0f, 200.0f);
-	m_view = glm::lookAt(glm::vec3(0), m_light.dir, glm::normalize(glm::cross(glm::vec3(1.0,0,0),m_light.dir)));
+	m_ortho = glm::ortho(-250.0f, 250.0f, -250.0f, 250.0f, -250.0f, 250.0f);
+	m_view = glm::lookAt(glm::vec3(0.0f), m_light.dir, glm::normalize(glm::cross(m_light.dir, glm::vec3(1.0, 0, 0))));
 
 	// Create FBO
 	glGenFramebuffers(1, &m_fbo);
@@ -17,7 +17,7 @@ bool ShadowMap::Init(unsigned int shadowMapWidth, unsigned int shadowMapHeight, 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadowMapWidth, shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	float color[] = { 1.0f, 1.0f, 1.0f, 0.0f };
+	float color[] = { FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, color);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -89,7 +89,7 @@ bool ShadowCube::Init(unsigned int shadowMapWidth, unsigned int shadowMapHeight,
 	glGenFramebuffers(1, &m_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-	float color[] = { 1.0f, 1.0f, 1.0f, 0.0f };
+	float color[] = { FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX };
 
 	// Create depth map
 	glGenTextures(1, &m_depthTex);
@@ -151,6 +151,8 @@ void ShadowCube::BindForWrite(GLuint program, unsigned int cubeFace)
 	glUniformMatrix4fv(glGetUniformLocation(program, "u_LightView"), 1, GL_FALSE, &m_views[cubeFace][0][0]);
 	printOpenGLError();
 	glUniformMatrix4fv(glGetUniformLocation(program, "u_LightProjection"), 1, GL_FALSE, &m_persp[0][0]);
+	printOpenGLError();
+	glUniform3fv(glGetUniformLocation(program, "u_LightPos"), 1, &m_light.pos.x);
 	printOpenGLError();
 }
 

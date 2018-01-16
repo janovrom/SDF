@@ -14,11 +14,13 @@
 bool		g_WireMode				= false;
 GLuint		g_Program;
 GLuint		g_RaymarchingProgram;
+GLuint		g_RaymarchingShadowProgram;
 GLuint		g_PointLightProgram;
 GLuint		g_NullProgram;
 GLuint		g_DirLightProgram;
 GLuint		g_DrawPointLightProgram;
 GLuint		g_ShadowProgram;
+GLuint		g_PointShadowProgram;
 GLuint		g_SphereVAO;
 glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
@@ -36,44 +38,47 @@ void DSPointShadowPass(unsigned int idx)
 	glViewport(0, 0, SHADOW_CUBE_MAP_SIZE, SHADOW_CUBE_MAP_SIZE);
 	for (unsigned int i = 0; i < 6; ++i)
 	{
-		glUseProgram(g_ShadowProgram);
-		PointShadowMaps[idx].BindForWrite(g_ShadowProgram, i);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		
+		if (Variables::Shader::RMShadows == 1)
+		{
+			// Fill the buffer with depth from raymarching
+			glUseProgram(g_RaymarchingShadowProgram);
+			PointShadowMaps[idx].BindForWrite(g_RaymarchingShadowProgram, i);
+			// Clear frame buffer and set OpenGL states
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, m_Noise);
+			glUniform1i(glGetUniformLocation(g_RaymarchingShadowProgram, "u_NoiseTex"), 2);
+			glUniform4f(glGetUniformLocation(g_RaymarchingShadowProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
+			Tools::DrawScreenQuad();
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glUseProgram(0);
+		}
+
+		// Fill the buffer with depth from geometry
+		glUseProgram(g_PointShadowProgram);
+		PointShadowMaps[idx].BindForWrite(g_PointShadowProgram, i);
+		if (Variables::Shader::RMShadows != 1)
+		{
+			// Clear frame buffer and set OpenGL states
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
+		glEnable(GL_BLEND);
 		printOpenGLError();
 
 		// Updates to depth buffer only in geometry pass
-		glDepthMask(GL_TRUE);
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		// Clear frame buffer and set OpenGL states
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		printOpenGLError();
-
-		RenderSceneGeometry(g_ShadowProgram);
+		RenderSceneGeometry(g_PointShadowProgram);
 		printOpenGLError();
 		glDisable(GL_BLEND);
 		glUseProgram(0);
 
-
-		//// Draw screen quad for raymarching 
-		//glDisable(GL_DEPTH_TEST);
-		//glUseProgram(g_RaymarchingProgram);
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
-		//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
-		//glActiveTexture(GL_TEXTURE1);
-		//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
-		//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_PosTex"), 1);
-		//glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
-		//Tools::DrawScreenQuad();
-		//glBindTexture(GL_TEXTURE_2D, 0);
-		//glUseProgram(0);
-
 		// GBuffer is filled, stencil needs it and shouldn't change it
-		glDepthMask(GL_FALSE);
-		glDisable(GL_DEPTH_TEST);
+		//glDepthMask(GL_FALSE);
+		//glDisable(GL_DEPTH_TEST);
 	}
 	//glCullFace(GL_BACK);
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -82,19 +87,40 @@ void DSPointShadowPass(unsigned int idx)
 
 void DSDirShadowPass(unsigned int idx)
 {
+	printOpenGLError();
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+	glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+
+	// Fill the buffer with depth from raymarching
+	if (Variables::Shader::RMShadows == 1)
+	{
+		glUseProgram(g_RaymarchingShadowProgram);
+		DirShadowMaps[idx].BindForWrite(g_RaymarchingShadowProgram);
+		// Clear frame buffer and set OpenGL states
+		glClear(GL_DEPTH_BUFFER_BIT);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_Noise);
+		glUniform1i(glGetUniformLocation(g_RaymarchingShadowProgram, "u_NoiseTex"), 2);
+		glUniform4f(glGetUniformLocation(g_RaymarchingShadowProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
+		Tools::DrawScreenQuad();
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glUseProgram(0);
+	}
+
+	// Fill the buffer with depth from geometry pass
 	glUseProgram(g_ShadowProgram);
 	DirShadowMaps[idx].BindForWrite(g_ShadowProgram);
+	if (Variables::Shader::RMShadows != 1)
+	{
+		// Clear frame buffer and set OpenGL states
+		glClear(GL_DEPTH_BUFFER_BIT);
+	}
 	printOpenGLError();
 
 	// Updates to depth buffer only in geometry pass
-	glDepthMask(GL_TRUE);
-	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// Clear frame buffer and set OpenGL states
-	glClear(GL_DEPTH_BUFFER_BIT);
-	printOpenGLError();
 
 	RenderSceneGeometry(g_ShadowProgram);
 	printOpenGLError();
@@ -102,23 +128,12 @@ void DSDirShadowPass(unsigned int idx)
 	glUseProgram(0);
 
 
-	//// Draw screen quad for raymarching 
+	// Draw screen quad for raymarching 
 	//glDisable(GL_DEPTH_TEST);
-	//glUseProgram(g_RaymarchingProgram);
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
-	//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_DepthTex"), 0);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetTexture(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION));
-	//glUniform1i(glGetUniformLocation(g_RaymarchingProgram, "u_PosTex"), 1);
-	//glUniform4f(glGetUniformLocation(g_RaymarchingProgram, "u_Times"), glfwGetTime(), g_Time * 1000.0f, g_Time, g_Time * g_Time);
-	//Tools::DrawScreenQuad();
-	//glBindTexture(GL_TEXTURE_2D, 0);
-	//glUseProgram(0);
 
 	// GBuffer is filled, stencil needs it and shouldn't change it
-	glDepthMask(GL_FALSE);
-	glDisable(GL_DEPTH_TEST);
+	//glDepthMask(GL_FALSE);
+	//glDisable(GL_DEPTH_TEST);
 }
 
 void DSGeometryPass()
@@ -414,6 +429,7 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DrawPointLightProgram, "point-light-draw.vs", NULL, NULL, NULL, "point-light-draw.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_ShadowProgram, "shadow-pass.vs", NULL, NULL, NULL, "shadow-pass.fs");
+	Tools::Shader::CreateShaderProgramFromFile(g_PointShadowProgram, "point-shadow-pass.vs", NULL, NULL, NULL, "point-shadow-pass.fs");
 	std::string raymarchPreprocessorMacros = "";
 	if (Variables::Shader::Int == 1)
 		raymarchPreprocessorMacros += "#define NOISE_TEXTURE\n";
@@ -425,7 +441,11 @@ void TW_CALL compileShaders(void *clientData)
 	if (Variables::Shader::RR == 1)
 		raymarchPreprocessorMacros += "#define REFLE_REFRA\n";
 
+	if (Variables::Shader::RMShadows == 1)
+		raymarchPreprocessorMacros += "#define CAST_SHADOWS\n";
+
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs", raymarchPreprocessorMacros.c_str());
+	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingShadowProgram, "raymarching-shadow-pass.vs", NULL, NULL, NULL, "raymarching-shadow-pass.fs", raymarchPreprocessorMacros.c_str());
 	
 	m_NoiseShader.InitShader("compute-noise.shader", glm::ivec3(1024, 1024, 1));
 	m_NoiseShader.LaunchComputeShader(m_Noise, GL_R32F);

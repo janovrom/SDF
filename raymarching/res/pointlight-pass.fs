@@ -24,13 +24,14 @@ layout(std140, binding = 1) uniform PointLightBlock
 
 out vec4 FragColor;
 
+
 float CalcShadowFactor(vec3 lightToPoint)
 {
-	float depth = texture(u_ShadowCube, (lightToPoint)).r;
+	float depth = texture(u_ShadowCube, normalize(lightToPoint)).r;
 
 	if (length(lightToPoint) < depth + 0.0001)
 	{
-		return 1.0;
+		return 3.0;
 	}
 	else
 	{

@@ -221,8 +221,12 @@ xcopy "$(SolutionDir)$(ProjectName)\res" "$(SolutionDir)bin\$(Configuration)" /S
     <None Include="res\null-pass.vs" />
     <None Include="res\point-light-draw.fs" />
     <None Include="res\point-light-draw.vs" />
+    <None Include="res\point-shadow-pass.fs" />
+    <None Include="res\point-shadow-pass.vs" />
     <None Include="res\pointlight-pass.vs" />
     <None Include="res\pointlight-pass.fs" />
+    <None Include="res\raymarching-shadow-pass.fs" />
+    <None Include="res\raymarching-shadow-pass.vs" />
     <None Include="res\raymarching.fs">
       <DeploymentContent>false</DeploymentContent>
       <FileType>CppCode</FileType>
