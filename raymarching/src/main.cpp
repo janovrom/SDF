@@ -281,6 +281,7 @@ void DSDirectionalLightPass()
 	{
 		printOpenGLError();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 2, DLights[i]);
+		glUniform4f(glGetUniformLocation(g_DirLightProgram, "u_Times"), glfwGetTime(), g_Time / 1000.0f, g_Time, g_Time * g_Time);
 		//glBindBufferRange(GL_UNIFORM_BUFFER, 2, DLights[i], 0, sizeof(DirectionalLight));
 		DirShadowMaps[i].BindForRead(3, g_DirLightProgram);
 
@@ -426,7 +427,6 @@ void TW_CALL compileShaders(void *clientData)
 	Tools::Shader::CreateShaderProgramFromFile(g_Program, "vertex.vs", NULL, NULL, NULL, "fragment.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_PointLightProgram, "pointlight-pass.vs", NULL, NULL, NULL, "pointlight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_NullProgram, "pointlight-pass.vs", NULL, NULL, NULL, "null-pass.fs");
-	Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_DrawPointLightProgram, "point-light-draw.vs", NULL, NULL, NULL, "point-light-draw.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_ShadowProgram, "shadow-pass.vs", NULL, NULL, NULL, "shadow-pass.fs");
 	Tools::Shader::CreateShaderProgramFromFile(g_PointShadowProgram, "point-shadow-pass.vs", NULL, NULL, NULL, "point-shadow-pass.fs");
@@ -443,6 +443,12 @@ void TW_CALL compileShaders(void *clientData)
 
 	if (Variables::Shader::RMShadows == 1)
 		raymarchPreprocessorMacros += "#define CAST_SHADOWS\n";
+
+	if(Variables::Shader::CloudShadows == 1)
+		Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs", "#define CLOUD_SHADOWS\n");
+	else
+		Tools::Shader::CreateShaderProgramFromFile(g_DirLightProgram, "directionallight-pass.vs", NULL, NULL, NULL, "directionallight-pass.fs");
+
 
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingProgram, "raymarching.vs", NULL, NULL, NULL, "raymarching.fs", raymarchPreprocessorMacros.c_str());
 	Tools::Shader::CreateShaderProgramFromFile(g_RaymarchingShadowProgram, "raymarching-shadow-pass.vs", NULL, NULL, NULL, "raymarching-shadow-pass.fs", raymarchPreprocessorMacros.c_str());

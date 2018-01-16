@@ -479,7 +479,7 @@ vec3 waterColor(vec3 p)
 	return vec3(0.92, 0.96, 1.0);
 }
 
-vec3 cloudColor(vec3 p)
+vec4 cloudColor(vec3 p)
 {
 	vec2 q = p.xz / sqrt(p.y);
 	float noise = 0.0;
@@ -491,7 +491,7 @@ vec3 cloudColor(vec3 p)
 	
 	noise = (noise + 3.0) / 3.0;
 	noise = clamp(noise - 0.75, 0, 1);
-	return mix(SKY, vec3(1.0), noise);
+	return vec4(mix(SKY, vec3(1.0), noise), noise);
 }
 
 //-------------------------------------------------------------------------
@@ -556,7 +556,7 @@ vec3 raymarchReflected(vec3 ro, vec3 rd, vec3 defaultColor)
 		// We hit the skybox
 		vec3 p = ro + st * rd;
 		WorldPosOut = vec4(vec3(1000.0), 1.0);
-		return cloudColor(p);
+		return cloudColor(p).rgb;
 	}
 	else
 	{
@@ -694,6 +694,7 @@ int raymarch(vec3 ro, vec3 rd)
 			{
 				col = vec4(sandColor(p), 1.0);
 			}
+
 			WorldPosOut = vec4(p, 1.0);
 			DiffuseOut = col;
 			NormalOut = vec4(n,1.0);
@@ -716,8 +717,8 @@ int raymarch(vec3 ro, vec3 rd)
 	{
 		// We hit the skybox
 		vec3 p = ro + st * rd;
-		WorldPosOut = vec4(vec3(1000.0), 1.0);
-		DiffuseOut = vec4(cloudColor(p), 1.0);
+		WorldPosOut = vec4(vec3(5000.0), 1.0);
+		DiffuseOut = vec4(cloudColor(p).rgb, 1.0);
 		NormalOut = vec4(vec3(0,1.0,0), 1.0);
 		gl_FragDepth = 1.0;
 		return 1;

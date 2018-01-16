@@ -357,7 +357,8 @@ int common_main(int window_width, int window_height, const char* window_title,
     TwAddVarRW(menu, "int_user_variable", TW_TYPE_INT32, &Variables::Shader::Int, " group='Shader variables' label='Use noise texture' min=0 max=1 step=1 keyIncr=I keyDecr=i help='User integer variable.' ");
 	TwAddVarRW(menu, "int_user_variable_2", TW_TYPE_INT32, &Variables::Shader::Int2, " group='Shader variables' label='Switch sin off' min=0 max=1 step=1 keyIncr=F keyDecr=f help='Switch sine to interpolation.' ");
 	TwAddVarRW(menu, "int_user_variable_3", TW_TYPE_INT32, &Variables::Shader::RR, " group='Shader variables' label='Enable refle/refra' min=0 max=1 step=1 keyIncr=F keyDecr=f help='Enable reflection and refraction for water.' ");
-	TwAddVarRW(menu, "user_stat_int0", TW_TYPE_INT32, &Variables::Shader::RMShadows, "group='Shader variables' label='Raymarch: shadow maps' min=0 max=1 step=1");
+	TwAddVarRW(menu, "int_user_variable_4", TW_TYPE_INT32, &Variables::Shader::RMShadows, "group='Shader variables' label='Raymarch: shadow maps' min=0 max=1 step=1");
+	TwAddVarRW(menu, "int_user_variable_5", TW_TYPE_INT32, &Variables::Shader::CloudShadows, "group='Shader variables' label='Cloud shadows' min=0 max=1 step=1");
 
     TwAddVarRO(menu, "user_stat_int1", TW_TYPE_INT32, &Variables::Menu::Int1, "group='User variables' label='user int 1' ");
     TwAddVarRO(menu, "user_stat_float0", TW_TYPE_FLOAT, &Variables::Menu::Float, "group='User variables' label='user float 0' ");

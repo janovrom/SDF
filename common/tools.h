@@ -33,6 +33,7 @@ namespace Variables {
 		int		Int2		= 0;    // Value will be automatically passed to 'u_UserVariableInt' uniform in all shaders
 		int		RR			= 0;	// Use reflection and refraction
 		int		RMShadows	= 0;	// Raymarched objects cast shadows
+		int		CloudShadows= 0;	// Clouds cast shadows
         float	Float		= 0.0f; // Value will be automatically passed to 'u_UserFloatInt' uniform in all shaders
 
         glm::vec4 SceneRotation = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);    // Scene orientation
