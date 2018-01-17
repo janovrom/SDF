@@ -178,7 +178,7 @@ void DSGeometryPass()
 		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::RaymarchGeom);
 		Statistic::Frame::RaymarchGeom /= 1000000;
 	}
-	glEnable(GL_DEPTH_TEST); 
+	//glEnable(GL_DEPTH_TEST); 
 }
 
 void DSStencilPass(unsigned int idx)

@@ -1,4 +1,4 @@
-#version 400 core
+#version 420
 
 //precision highp float;
 
@@ -734,17 +734,8 @@ int raymarch(vec3 ro, vec3 rd)
 }
 
 void main() {
-	switch (raymarch(v_Pos_worldspace, normalize(v_Normal_worldspace)))
+	if (raymarch(v_Pos_worldspace, normalize(v_Normal_worldspace)) < 0.0)
 	{
-	case -1:
 		discard;
-		break;
-	case 0:
-		DiffuseOut = vec4(0, 1, 0, 1.0);
-		break;
-	case 1:
-		break;
-	default:
-		break;
 	}
 }

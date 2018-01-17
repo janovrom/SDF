@@ -1,4 +1,4 @@
-#version 400
+#version 420
 
 
 layout(location = 0) in vec3 a_Pos;
