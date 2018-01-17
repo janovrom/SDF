@@ -41,18 +41,27 @@ namespace Variables {
     }; // end of namespace Variables::Shader
 
     namespace Menu {
-        int   Int       =    0;     // Value will be automatically shown in the sub-menu 'Statistic'
-        float Float     = 0.0f;     // Value will be automatically shown in the sub-menu 'Statistic'
-        int   Int1      =    0;     // Value will be automatically shown in the sub-menu 'Statistic'
-        float Float1    = 0.0f;     // Value will be automatically shown in the sub-menu 'Statistic'
+        int		Int			=    0;     // Value will be automatically shown in the sub-menu 'Statistic'
+        float	Float		= 0.0f;     // Value will be automatically shown in the sub-menu 'Statistic'
+        int		Int1		=    0;     // Value will be automatically shown in the sub-menu 'Statistic'
+        float	Float1		= 0.0f;     // Value will be automatically shown in the sub-menu 'Statistic'
+		bool	ShowLight	= true;
+		bool	ShowBuffers = true;
+		bool	ShowStats	= false;
     }; // end of namespace Variables::Menu
 }; // end of namespace Variables
 
 namespace Statistic {
     namespace Frame {
         int   GPUTime   = 0;        // GPU frame time
-        int   CPUTime   = 0;        // CPU frame time
-        int   ID        = 0;        // Id of the frame
+        int   CPUTime		= 0;        // CPU frame time
+		int   ID				= 0;    // Id of the frame
+		unsigned int RaymarchGeom	= 0;
+		unsigned int RasterizeGeom	= 0;
+		unsigned int DirShadows			= 0;        
+		unsigned int PointShadows		= 0;
+		unsigned int DirLights				= 0;
+		unsigned int PointLights			= 0;
     }; // end of namespace Statistic::Frame
 
     namespace GPUMemory {

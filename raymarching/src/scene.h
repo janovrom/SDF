@@ -7,23 +7,25 @@
 #include "sdf.h"
 #include <iostream>
 #include "../../common/glm/gtc/matrix_transform.hpp"
-//#include "lights.h"
 #include "shadowmap.h"
+#include <vector>
 
-const unsigned int WINDOW_WIDTH = 800;
-const unsigned int WINDOW_HEIGHT = 600;
+const unsigned int WINDOW_WIDTH		= 800;
+const unsigned int WINDOW_HEIGHT	= 600;
+
+unsigned int NUM_DIRECTIONAL_LIGHTS = 0;
+unsigned int NUM_POINT_LIGHTS		= 0;
 
 #define NUM_FILES 7
 
 
 Mesh Objects[NUM_FILES];
-GLuint PLights[NUM_POINT_LIGHTS];
-GLuint DLights[NUM_DIRECTIONAL_LIGHTS];
-ShadowMap DirShadowMaps[NUM_DIRECTIONAL_LIGHTS];
-ShadowCube PointShadowMaps[NUM_POINT_LIGHTS];
+std::vector<GLuint> PLights;
+std::vector<GLuint> DLights;
+std::vector<ShadowMap> DirShadowMaps;
+std::vector<ShadowCube> PointShadowMaps;
 GLuint m_SphereVAO;
 GLuint m_Noise;
-float PLightsRadii[NUM_POINT_LIGHTS];
 ComputeShader m_NoiseShader;
 
 
@@ -71,38 +73,66 @@ void LoadScene()
 
 	// Load lights
 	tin.open("scene.lights"); // First are all point lights, then directional lights
-	// Generate buffers for lights
-	glGenBuffers(NUM_POINT_LIGHTS, &PLights[0]);
-	glGenBuffers(NUM_DIRECTIONAL_LIGHTS, &DLights[0]);
-	// Load point lights
-	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	std::vector<PointLight> pointLights;
+	std::vector<DirectionalLight> directionalLights;
+
+
+	while (true)
 	{
 		int type;
 		tin >> type;
-		PointLight p;
-		tin >> p.light.color.x >> p.light.color.y >> p.light.color.z;
-		tin >> p.light.ambientIntensity >> p.light.diffuseIntensity;
-		tin >> p.attenuation.constant >> p.attenuation.linear >> p.attenuation.exp;
-		tin >> p.pos.x >> p.pos.y >> p.pos.z;
-		p.radius = CalcPLightBSphere(p);
-		PointShadowMaps[i].Init(SHADOW_CUBE_MAP_SIZE, SHADOW_CUBE_MAP_SIZE, p);
+		if (type == DIRECTIONAL_LIGHT)
+		{
+			DirectionalLight p;
+			tin >> p.color.x >> p.color.y >> p.color.z;
+			tin >> p.ambientIntensity >> p.diffuseIntensity;
+			tin >> p.dir.x >> p.dir.y >> p.dir.z;
+			p.dir = glm::normalize(p.dir);
+			directionalLights.push_back(p);
+		}
+		else if (type == POINT_LIGHT)
+		{
+			PointLight p;
+			tin >> p.light.color.x >> p.light.color.y >> p.light.color.z;
+			tin >> p.light.ambientIntensity >> p.light.diffuseIntensity;
+			tin >> p.attenuation.constant >> p.attenuation.linear >> p.attenuation.exp;
+			tin >> p.pos.x >> p.pos.y >> p.pos.z;
+			p.radius = CalcPLightBSphere(p);
+			pointLights.push_back(p);
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	// Assign sizes
+	NUM_POINT_LIGHTS = pointLights.size();
+	NUM_DIRECTIONAL_LIGHTS = directionalLights.size();
+
+	// Generate buffers for lights
+	PLights.reserve(NUM_POINT_LIGHTS);
+	DLights.reserve(NUM_DIRECTIONAL_LIGHTS);
+	PointShadowMaps.reserve(NUM_POINT_LIGHTS);
+	DirShadowMaps.reserve(NUM_DIRECTIONAL_LIGHTS);
+	glGenBuffers(NUM_POINT_LIGHTS, &PLights[0]);
+	glGenBuffers(NUM_DIRECTIONAL_LIGHTS, &DLights[0]);
+
+
+	// Load point lights
+	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	{
+		PointShadowMaps[i].Init(SHADOW_CUBE_MAP_SIZE, SHADOW_CUBE_MAP_SIZE, pointLights[i]);
 		glBindBuffer(GL_UNIFORM_BUFFER, PLights[i]);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight), (void*)&p, GL_STATIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight), (void*)&pointLights[i], GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 	// Load directional lights
 	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
 	{
-		int type;
-		tin >> type;
-		DirectionalLight p;
-		tin >> p.color.x >> p.color.y >> p.color.z;
-		tin >> p.ambientIntensity >> p.diffuseIntensity;
-		tin >> p.dir.x >> p.dir.y >> p.dir.z;
-		p.dir = glm::normalize(p.dir);
-		DirShadowMaps[i].Init(WINDOW_WIDTH, WINDOW_HEIGHT, p);
+		DirShadowMaps[i].Init(WINDOW_WIDTH, WINDOW_HEIGHT, directionalLights[i]);
 		glBindBuffer(GL_UNIFORM_BUFFER, DLights[i]);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), (void*)&p, GL_STATIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), (void*)&directionalLights[i], GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 	tin.close();

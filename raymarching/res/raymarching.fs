@@ -645,7 +645,7 @@ int raymarch(vec3 ro, vec3 rd)
 		// Do the depth test
 		float dist = length(p - u_EyePosWorld);
 		//if (t * dot(rd, u_EyeDirWorld) > tmax)
-		if (wPos.a > 0 && dist > length(wPos.xyz - u_EyePosWorld))
+		if (wPos.a > 0.0 && dist > length(wPos.xyz - u_EyePosWorld))
 		{
 			return -1;
 		}
@@ -702,7 +702,7 @@ int raymarch(vec3 ro, vec3 rd)
 			float zc = P.z;
 			float wc = P.w;
 			float depthP = zc / wc;
-			//depthP = 0.5 * depthP + 0.5;
+			depthP = 0.5 * depthP + 0.5;
 			gl_FragDepth = depthP;
 			return 1;
 			//return col;// *dot(-lightDir, n)
@@ -720,7 +720,7 @@ int raymarch(vec3 ro, vec3 rd)
 		WorldPosOut = vec4(vec3(5000.0), 1.0);
 		DiffuseOut = vec4(cloudColor(p).rgb, 1.0);
 		NormalOut = vec4(vec3(0,1.0,0), 1.0);
-		gl_FragDepth = 1.0;
+		gl_FragDepth = 1000.0;
 		return 1;
 	}
 	else
@@ -728,7 +728,7 @@ int raymarch(vec3 ro, vec3 rd)
 		WorldPosOut = color;
 		DiffuseOut = vec4(1,0,0, 1.0);
 		NormalOut = color;
-		gl_FragDepth = 1.0;
+		gl_FragDepth = 1000.0;
 		return 0;
 	}
 }

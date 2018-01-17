@@ -5,11 +5,8 @@
 
 #include "../../common/glm/glm.hpp"
 
-#define NUM_POINT_LIGHTS		2
-#define NUM_DIRECTIONAL_LIGHTS	2
 #define POINT_LIGHT				1
 #define DIRECTIONAL_LIGHT		2
-
 
 struct BaseLight
 {

@@ -360,17 +360,27 @@ int common_main(int window_width, int window_height, const char* window_title,
 	TwAddVarRW(menu, "int_user_variable_4", TW_TYPE_INT32, &Variables::Shader::RMShadows, "group='Shader variables' label='Raymarch: shadow maps' min=0 max=1 step=1");
 	TwAddVarRW(menu, "int_user_variable_5", TW_TYPE_INT32, &Variables::Shader::CloudShadows, "group='Shader variables' label='Cloud shadows' min=0 max=1 step=1");
 
-    TwAddVarRO(menu, "user_stat_int1", TW_TYPE_INT32, &Variables::Menu::Int1, "group='User variables' label='user int 1' ");
-    TwAddVarRO(menu, "user_stat_float0", TW_TYPE_FLOAT, &Variables::Menu::Float, "group='User variables' label='user float 0' ");
-    TwAddVarRO(menu, "user_stat_float1", TW_TYPE_FLOAT, &Variables::Menu::Float1, "group='User variables' label='user float 1' ");
+	TwAddVarRW(menu, "user_stat_bool0", TW_TYPE_BOOL8, &Variables::Menu::ShowLight, "group='User variables' label='Show point lights' ");
+	TwAddVarRW(menu, "user_stat_bool1", TW_TYPE_BOOL8, &Variables::Menu::ShowBuffers, "group='User variables' label='Show buffers' ");
+	TwAddVarRW(menu, "user_stat_bool2", TW_TYPE_BOOL8, &Variables::Menu::ShowStats, "group='User variables' label='Update statistics' ");
 
     TwBar *menuStat = TwNewBar("Statistics");
-    sprintf(settings, " Statistics position='%d 10' size='%d %d' valueswidth=70 refresh=0.1 ", Variables::WindowSize.x - 240, 230, bShowMemStat ? 175 : 100);
+    sprintf(settings, " Statistics position='%d 10' size='%d %d' valueswidth=70 refresh=0.1 ", Variables::WindowSize.x - 240, 230, 300);
     TwDefine(settings);
     TwAddVarRO(menuStat, "frame_id", TW_TYPE_INT32, &Statistic::Frame::ID, "group='Frame statistic' label='ID' ");
     TwAddVarRO(menuStat, "frame_gpu_time", TW_TYPE_INT32, &Statistic::Frame::GPUTime, "group='Frame statistic' label='GPU time' ");
     TwAddVarRO(menuStat, "frame_cpu_time", TW_TYPE_INT32, &Statistic::Frame::CPUTime, "group='Frame statistic' label='CPU time' ");
-    if (bShowMemStat) {
+    
+	TwAddVarRO(menuStat, "raymarch_geom", TW_TYPE_INT32, &Statistic::Frame::RaymarchGeom, "group='Geometric statistic' label='Raymarching'");
+	TwAddVarRO(menuStat, "rasterize_geom", TW_TYPE_INT32, &Statistic::Frame::RasterizeGeom, "group='Geometric statistic' label='Rasterize'");
+
+	TwAddVarRO(menuStat, "dir_Shadow", TW_TYPE_INT32, &Statistic::Frame::DirShadows, "group='Shadow statistic' label='Directional'");
+	TwAddVarRO(menuStat, "point_Shadow", TW_TYPE_INT32, &Statistic::Frame::PointShadows, "group='Shadow statistic' label='Point'");
+
+	TwAddVarRO(menuStat, "dir_lights", TW_TYPE_INT32, &Statistic::Frame::DirLights, "group='Light statistic' label='Directional'");
+	TwAddVarRO(menuStat, "point_lights", TW_TYPE_INT32, &Statistic::Frame::PointLights, "group='Light statistic' label='Point'");
+	
+	if (bShowMemStat) {
         TwAddVarRO(menuStat, "dedicated_gpu_mem", TW_TYPE_INT32, &Statistic::GPUMemory::DedicatedMemory, "group='GPU memory' label='dedicated' ");
         TwAddVarRO(menuStat, "total_gpu_mem", TW_TYPE_INT32, &Statistic::GPUMemory::TotalMemory, "group='GPU memory' label='total' ");
         TwAddVarRO(menuStat, "used_gpu_mem", TW_TYPE_INT32, &Statistic::GPUMemory::AllocatedMemory, "group='GPU memory' label='allocated' ");

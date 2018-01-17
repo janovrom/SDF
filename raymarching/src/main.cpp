@@ -26,6 +26,7 @@ glm::vec3	g_Color					= glm::vec3(1, 0, 0);
 GBuffer		m_gbuffer;
 ComputeShader			m_sdf;
 double		g_Time;
+GLuint		g_Query;
  
 void updateUserData()
 {
@@ -33,7 +34,6 @@ void updateUserData()
 
 void DSPointShadowPass(unsigned int idx)
 {
-	//glCullFace(GL_FRONT);
 	glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
 	glViewport(0, 0, SHADOW_CUBE_MAP_SIZE, SHADOW_CUBE_MAP_SIZE);
 	for (unsigned int i = 0; i < 6; ++i)
@@ -76,11 +76,7 @@ void DSPointShadowPass(unsigned int idx)
 		glDisable(GL_BLEND);
 		glUseProgram(0);
 
-		// GBuffer is filled, stencil needs it and shouldn't change it
-		//glDepthMask(GL_FALSE);
-		//glDisable(GL_DEPTH_TEST);
 	}
-	//glCullFace(GL_BACK);
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
@@ -126,14 +122,6 @@ void DSDirShadowPass(unsigned int idx)
 	printOpenGLError();
 	glDisable(GL_BLEND);
 	glUseProgram(0);
-
-
-	// Draw screen quad for raymarching 
-	//glDisable(GL_DEPTH_TEST);
-
-	// GBuffer is filled, stencil needs it and shouldn't change it
-	//glDepthMask(GL_FALSE);
-	//glDisable(GL_DEPTH_TEST);
 }
 
 void DSGeometryPass()
@@ -144,29 +132,32 @@ void DSGeometryPass()
 	// Updates to depth buffer only in geometry pass
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// Clear the color
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	// Clear the depth
-	//glClearColor(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
-	//glClear(GL_DEPTH_BUFFER_BIT);
 	printOpenGLError();
-	  
-	//glPolygonMode(GL_FRONT_AND_BACK, g_WireMode ? GL_LINE : GL_FILL);
-	printOpenGLError();
+
+	glBeginQuery(GL_TIME_ELAPSED, g_Query);
 	// Update shader program  
 	glUseProgram(g_Program); 
-	//glUniformMatrix4fv(glGetUniformLocation(g_Program, "u_ModelViewMatrix"), 1, GL_FALSE, &glm::lookAt(glm::vec3(0, 1, 0), glm::vec3(0,0,0), glm::vec3(0.0, 0.0, -1.0))[0][0]);
-	//glUniformMatrix4fv(glGetUniformLocation(g_Program, "u_ProjectionMatrix"), 1, GL_FALSE, &glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f)[0][0]);
 	RenderSceneGeometry(g_Program);
 	glUseProgram(0);  
+	glEndQuery(GL_TIME_ELAPSED);
+	if (Variables::Menu::ShowStats)
+	{
+		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::RasterizeGeom);
+		Statistic::Frame::RasterizeGeom /= 1000000;
+	}
 	printOpenGLError();
 	glDisable(GL_BLEND);
 	   
 	// Draw screen quad for raymarching 
 	glDisable(GL_DEPTH_TEST);
+	glBeginQuery(GL_TIME_ELAPSED, g_Query);
 	glUseProgram(g_RaymarchingProgram); 
 	glActiveTexture(GL_TEXTURE0);  
 	glBindTexture(GL_TEXTURE_2D, m_gbuffer.GetDepthTexture());
@@ -181,10 +172,13 @@ void DSGeometryPass()
 	Tools::DrawScreenQuad(); 
 	glBindTexture(GL_TEXTURE_2D,  0);  
 	glUseProgram(0);  
-
-	// GBuffer is filled, stencil needs it and shouldn't change it
-	glDepthMask(GL_FALSE);   
-	glDisable(GL_DEPTH_TEST); 
+	glEndQuery(GL_TIME_ELAPSED);
+	if (Variables::Menu::ShowStats)
+	{
+		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::RaymarchGeom);
+		Statistic::Frame::RaymarchGeom /= 1000000;
+	}
+	glEnable(GL_DEPTH_TEST); 
 }
 
 void DSStencilPass(unsigned int idx)
@@ -248,9 +242,6 @@ void DSRenderPointLights()
 {
 	// Enable stencil test for point in sphere test
 	glEnable(GL_STENCIL_TEST);
-	// Bind textures to texture units 0-2
-	//m_gbuffer.BindForLightPass();
-	// Bind uniform textures
 	printOpenGLError();
 
 	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
@@ -282,7 +273,6 @@ void DSDirectionalLightPass()
 		printOpenGLError();
 		glBindBufferBase(GL_UNIFORM_BUFFER, 2, DLights[i]);
 		glUniform4f(glGetUniformLocation(g_DirLightProgram, "u_Times"), glfwGetTime(), g_Time / 1000.0f, g_Time, g_Time * g_Time);
-		//glBindBufferRange(GL_UNIFORM_BUFFER, 2, DLights[i], 0, sizeof(DirectionalLight));
 		DirShadowMaps[i].BindForRead(3, g_DirLightProgram);
 
 		printOpenGLError();
@@ -307,15 +297,21 @@ void DSIntermediateLightPass()
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	glEnable(GL_DEPTH_TEST);
-	glUseProgram(g_DrawPointLightProgram);
-	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+	if (Variables::Menu::ShowLight)
 	{
-		glUniform3fv(glGetUniformLocation(g_DrawPointLightProgram, "u_LightPos"), 1, &PointShadowMaps[i].GetLightPosition().x);
-		Tools::DrawSphere();
-		printOpenGLError();
+		glUseProgram(g_DrawPointLightProgram);
+		for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
+		{
+			glUniform3fv(glGetUniformLocation(g_DrawPointLightProgram, "u_LightPos"), 1, &PointShadowMaps[i].GetLightPosition().x);
+			Tools::DrawSphere();
+			printOpenGLError();
+		}
+		glDisable(GL_DEPTH_TEST);
+		glUseProgram(0);
 	}
-	glDisable(GL_DEPTH_TEST);
-	glUseProgram(0);
+
+	if (!Variables::Menu::ShowBuffers)
+		return;
 
 	GLsizei QWidth = (GLsizei)(WINDOW_WIDTH / 4.0f);
 	GLsizei QHeight = (GLsizei)(WINDOW_HEIGHT / 4.0f);
@@ -361,9 +357,6 @@ void DSIntermediateLightPass()
 	Tools::Texture::Show2DTexture(m_gbuffer.GetDepthTexture(), 
 		WINDOW_WIDTH - QWidth, WINDOW_HEIGHT - 4*QHeight, QWidth, QHeight);
 	glBindTexture(GL_TEXTURE_2D, 0);  
-	//printOpenGLError();
-	//glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
-	//	HalfWidth, 0, WINDOW_WIDTH, HalfHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	printOpenGLError();
 }
 
@@ -371,33 +364,67 @@ void display()
 {
 	// Update user data if number of models changed
 	updateUserData();
+	// Generate Directional light shadow maps
+	glBeginQuery(GL_TIME_ELAPSED, g_Query);
 	for (unsigned int i = 0; i < NUM_DIRECTIONAL_LIGHTS; ++i)
 	{
 		DSDirShadowPass(i);
 	}
+	glEndQuery(GL_TIME_ELAPSED);
+	if (Variables::Menu::ShowStats)
+	{
+		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::DirShadows);
+		Statistic::Frame::DirShadows /= 1000000;
+	}
 
+	// Generate point light shadow cubes
+	glBeginQuery(GL_TIME_ELAPSED, g_Query);
 	for (unsigned int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{
 		DSPointShadowPass(i);
 	}
+	glEndQuery(GL_TIME_ELAPSED);
+	if (Variables::Menu::ShowStats)
+	{
+		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::PointShadows);
+		Statistic::Frame::PointShadows /= 1000000;
+	}
 
+	// Render geometry to GBuffer
 	m_gbuffer.StartFrame();
 	DSGeometryPass();
+
+	// Render point light pass
+	glBeginQuery(GL_TIME_ELAPSED, g_Query);
 	DSRenderPointLights();
+	glEndQuery(GL_TIME_ELAPSED);
+	if (Variables::Menu::ShowStats)
+	{
+		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::PointLights);
+		Statistic::Frame::PointLights /= 1000000;
+	}
+
+	// Render directional light pass
+	glBeginQuery(GL_TIME_ELAPSED, g_Query);
 	DSDirectionalLightPass();
+	glEndQuery(GL_TIME_ELAPSED);
+	if (Variables::Menu::ShowStats)
+	{
+		glGetQueryObjectuiv(g_Query, GL_QUERY_RESULT, &Statistic::Frame::DirLights);
+		Statistic::Frame::DirLights /= 1000000;
+	}
+
 	printOpenGLError();
 	DSFinalLightPass();
 	DSIntermediateLightPass();
 
-	//glReadBuffer(0);
-	//glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	//printOpenGLError();
 	g_Time = glfwGetTime() - g_Time;
 }
 
 void initGL()
 {
+	glGenQueries(1, &g_Query);
+
 	// Init GBuffer
 	m_gbuffer.Init(WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -485,7 +512,7 @@ int main(int argc, char* argv)
 {
 	int OGL_CONFIGURATION[] = {
 		GLFW_CONTEXT_VERSION_MAJOR, 4,
-		GLFW_CONTEXT_VERSION_MINOR, 4,
+		GLFW_CONTEXT_VERSION_MINOR, 3,
 		GLFW_OPENGL_FORWARD_COMPAT, GL_FALSE,
 		GLFW_OPENGL_DEBUG_CONTEXT,  GL_TRUE,
 		GLFW_OPENGL_PROFILE,        /*GLFW_OPENGL_COMPAT_PROFILE*/ GLFW_OPENGL_CORE_PROFILE, 

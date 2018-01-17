@@ -27,11 +27,11 @@ out vec4 FragColor;
 
 float CalcShadowFactor(vec3 lightToPoint)
 {
-	float depth = texture(u_ShadowCube, normalize(lightToPoint)).r;
+	float depth = texture(u_ShadowCube, (lightToPoint)).r;
 
 	if (length(lightToPoint) < depth + 0.0001)
 	{
-		return 3.0;
+		return 1.0;
 	}
 	else
 	{
