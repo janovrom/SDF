@@ -6,10 +6,9 @@ in vec2 v_Vertex;
 in vec3 v_Normal_worldspace;
 in vec3 v_Pos_worldspace;
 
-uniform sampler2D u_DepthTex;
-uniform sampler2D u_PosTex;
 uniform sampler2D u_NoiseTex;
-uniform mat4 u_MVPMatrix;
+uniform mat4  u_LightView;
+uniform mat4  u_LightProjection;
 uniform float u_Near;
 uniform float u_Far;
 uniform vec4 u_Times;
@@ -18,10 +17,8 @@ uniform vec3 u_EyePosWorld;
 uniform int u_UserVariableInt;
 uniform int u_UserVariableInt2;
 
-layout(location = 0) out vec4 WorldPosOut;
-layout(location = 1) out vec4 DiffuseOut;
-layout(location = 2) out vec4 NormalOut;
-//layout(location = 3) out vec3 DepthOut;
+out float FragColor;
+
 
 const float SAW[5] = {
 	1.0, -1.0, 1.0, -1.0, 1.0
@@ -369,10 +366,10 @@ float opDisplaceGround(vec3 p)
 #else
 	p += cnoise(p.xz / 128.0)*18.0;
 	dy = cnoise(p.yx / 24.0) / 16.0;
-	d2 = sawFunction(dy /4.0 +cnoise(p.xz / 512.0)) * min((length(p / 10.0)), 128.0);
-	d3 = sawFunction(dy + (p) / 128.0 + cnoise(dy + p.xz / 164.0 + vec2((cnoise(dy + p.xz/220.0)) / 120.0) * 32.0)) * 10.0;
+	d2 = sawFunction(dy / 4.0 + cnoise(p.xz / 512.0)) * min((length(p / 10.0)), 128.0);
+	d3 = sawFunction(dy + (p) / 128.0 + cnoise(dy + p.xz / 164.0 + vec2((cnoise(dy + p.xz / 220.0)) / 120.0) * 32.0)) * 10.0;
 #endif
-	
+
 	float sm = smin(d2, d3, 32.0);
 	//return d1 + sm - (sink / 2.0);
 	return smin(d1 + sm - (sink / 2.0), b, 16.0);
@@ -463,13 +460,13 @@ vec3 sandColor(vec3 p)
 #endif
 
 	dnoise *= dnoise;
-	vec3 sand = mix(SAND, DARK_SAND, 1.0-noise);
+	vec3 sand = mix(SAND, DARK_SAND, 1.0 - noise);
 	vec3 soil = mix(SOIL, STONES, dnoise);
 	float l = length(p.xz);
 #ifdef NOISE_TEXTURE
-		l *= 24.0;
+	l *= 24.0;
 #endif
-	float t = max(sign((-p.y)), 0.0) * max(0, (75-l)) / 75.0;
+	float t = max(sign((-p.y)), 0.0) * max(0, (75 - l)) / 75.0;
 	t *= t;
 	return mix(sand, soil, t);
 }
@@ -479,7 +476,7 @@ vec3 waterColor(vec3 p)
 	return vec3(0.92, 0.96, 1.0);
 }
 
-vec4 cloudColor(vec3 p)
+vec3 cloudColor(vec3 p)
 {
 	vec2 q = p.xz / sqrt(p.y);
 	float noise = 0.0;
@@ -488,10 +485,10 @@ vec4 cloudColor(vec3 p)
 #else
 	noise = cnoise(q / 50.0 + u_Times[0] / 10.0) + cnoise(q / 10.0 + u_Times[0] / 20.0) + cnoise(q / 30.0 + u_Times[0] / 60.0);
 #endif
-	
+
 	noise = (noise + 3.0) / 3.0;
 	noise = clamp(noise - 0.75, 0, 1);
-	return vec4(mix(SKY, vec3(1.0), noise), noise);
+	return mix(SKY, vec3(1.0), noise);
 }
 
 //-------------------------------------------------------------------------
@@ -529,8 +526,8 @@ vec3 normal(vec3 p, float precis)
 {
 	vec2 eps = vec2(0.0001 * precis, 0);
 	return normalize(vec3(
-		map(p + eps.xyy).x - map(p - eps.xyy).x, 
-		map(p + eps.yxy).x - map(p - eps.yxy).x, 
+		map(p + eps.xyy).x - map(p - eps.xyy).x,
+		map(p + eps.yxy).x - map(p - eps.yxy).x,
 		map(p + eps.yyx).x - map(p - eps.yyx).x));
 }
 
@@ -541,97 +538,12 @@ float linearDepth(float depthSample)
 	return zLinear;
 }
 
-vec2 mapRefra(vec3 p)
-{
-	p.y -= 5.0;
-	return vec2(opDisplaceGround(p), 1.0);
-}
-
-vec3 raymarchReflected(vec3 ro, vec3 rd, vec3 defaultColor)
-{
-	// Didn't hit anything so hit the bounding sphere
-	float st = (IntersectSphereRay(ro, rd));
-	if (st > 0)
-	{
-		// We hit the skybox
-		vec3 p = ro + st * rd;
-		WorldPosOut = vec4(vec3(1000.0), 1.0);
-		return cloudColor(p).rgb;
-	}
-	else
-	{
-		return vec3(1.0, 0,0);
-	}
-}
-
-// Raymarch only over SDF
-vec3 raymarchRefracted(vec3 ro, vec3 rd, vec3 defaultColor)
-{
-	const int maxstep = 8;
-	float t = 0;
-	float lastDist = 0;
-	float omega = 1.4;
-	float step = 0.0;
-	for (int i = 0; i < maxstep; ++i)
-	{
-		vec3 p = ro + rd * t;
-		// No hit, go to skybox
-		if (length(p) > 1500.0)
-			break;
-
-		vec2 d = mapRefra(p);
-		// Use relaxation
-		//bool relaxFailed = omega > 1.0 && (abs(d.x) + lastDist) < step;
-		//if (relaxFailed)
-		//{
-		//	t -= step;
-		//	omega = 1.0;
-		//	continue;
-		//}
-		//else
-		//{
-		//	step = (d.x) * omega;
-		//	omega *= 1.0055;
-		//}
-		step = d.x;
-		lastDist = abs(d.x);
-		float precis = abs(lastDist) / t;
-		if (0.002 > precis)
-		{
-			// I have got a hit
-			vec4 col = vec4(1.0, 0.8, 0.9, 1.0);
-			if (d.y < 0.5)
-			{
-				return vec3(1.0,0,0);
-			}
-			else
-			{
-				return sandColor(p);
-			}
-		}
-		// Make adaptive step when going around flat object
-		t += step;
-	}
-
-	return defaultColor;
-}
-
-float schlickApproximation(vec3 v, vec3 n, float n1, float n2)
-{
-	float cosTheta = dot(v, n);
-	float r0 = pow((n1 - n2) / (n1 + n2), 2.0);
-	return clamp(r0 + (1 - r0) * pow(1 - cosTheta, 5), 0.0, 1.0);
-}
-
 int raymarch(vec3 ro, vec3 rd)
 {
 	vec4 color = vec4(0);
 
 	const int maxstep = 64;
 	float t = 0;
-	float depth = texelFetch(u_DepthTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0).x;
-	float tmax = linearDepth(depth);
-	vec4 wPos = texelFetch(u_PosTex, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
 	float lastDist = 0;
 	float omega = 1.4;
 	float step = 0.0;
@@ -642,13 +554,7 @@ int raymarch(vec3 ro, vec3 rd)
 			break;
 
 
-		// Do the depth test
-		float dist = length(p - u_EyePosWorld);
-		//if (t * dot(rd, u_EyeDirWorld) > tmax)
-		if (wPos.a > 0 && dist > length(wPos.xyz - u_EyePosWorld))
-		{
-			return -1;
-		}
+		// Don't do the depth test - render this as first pass of shadow
 		vec2 d = map(p);
 		// Use relaxation
 		bool relaxFailed = omega > 1.0 && (abs(d.x) + lastDist) < step;
@@ -671,39 +577,13 @@ int raymarch(vec3 ro, vec3 rd)
 		if (0.002 > precis)
 #endif
 		{
-			vec3 n = normal(p, t);
-			//vec3 col = 0.45 + 0.35*abs(sin(vec3(0.05, 0.08, 0.10))*(d.y - 1.0));
-			vec4 col = vec4(1.0,0.8,0.9, 1.0);
-			if(d.y < 0.5)
-			{
-				// Water has reflection and refraction - do it and accumulate
-#ifdef REFLE_REFRA
-				vec3 refracted = normalize(refract(-rd, n, 1.3333));
-				vec3 reflected = normalize(reflect(-rd, n));
-				vec3 colWater = waterColor(p);
-				vec3 colRefra = raymarchRefracted(p + refracted * 0.1, refracted, colWater) * colWater;
-				vec3 colRefle = raymarchReflected(p + reflected * 0.1, reflected, colWater);
-				float st = schlickApproximation(-rd, n, 1.00029, 1.3333);
-				vec3 colResult = mix(colRefra, colRefle, st);
-				col = vec4(colResult, 1.0);
-#else
-				col = vec4(waterColor(p), 1.0);
-#endif
-			}
-			else
-			{
-				col = vec4(sandColor(p), 1.0);
-			}
-
-			WorldPosOut = vec4(p, 1.0);
-			DiffuseOut = col;
-			NormalOut = vec4(n,1.0);
-			vec4 P = u_MVPMatrix * vec4(p, 1.0);
+			vec4 P = u_LightProjection * u_LightView * vec4(p + rd, 1.0);
 			float zc = P.z;
 			float wc = P.w;
 			float depthP = zc / wc;
-			//depthP = 0.5 * depthP + 0.5;
-			gl_FragDepth = depthP;
+			depthP = 0.5 * depthP + 0.5;
+			gl_FragDepth = depthP;// length(p - ro) / 500.0 + 0.5;
+			FragColor = depthP;
 			return 1;
 			//return col;// *dot(-lightDir, n)
 		}
@@ -711,40 +591,14 @@ int raymarch(vec3 ro, vec3 rd)
 		t += step;
 	}
 
-	// Didn't hit anything so hit the bounding sphere
-	float st = abs(IntersectSphereRay(ro, rd));
-	if (st > 0)
-	{
-		// We hit the skybox
-		vec3 p = ro + st * rd;
-		WorldPosOut = vec4(vec3(5000.0), 1.0);
-		DiffuseOut = vec4(cloudColor(p).rgb, 1.0);
-		NormalOut = vec4(vec3(0,1.0,0), 1.0);
-		gl_FragDepth = 1.0;
-		return 1;
-	}
-	else
-	{
-		WorldPosOut = color;
-		DiffuseOut = vec4(1,0,0, 1.0);
-		NormalOut = color;
-		gl_FragDepth = 1.0;
-		return 0;
-	}
+	gl_FragDepth = 20000.0;
+	FragColor = 20000.0;
+	return -1;
 }
 
-void main() {
-	switch (raymarch(v_Pos_worldspace, normalize(v_Normal_worldspace)))
-	{
-	case -1:
+void main()
+{
+	if (raymarch(v_Pos_worldspace, normalize(v_Normal_worldspace)) < 0)
 		discard;
-		break;
-	case 0:
-		DiffuseOut = vec4(0, 1, 0, 1.0);
-		break;
-	case 1:
-		break;
-	default:
-		break;
-	}
+	//FragColor = 0.0;
 }
