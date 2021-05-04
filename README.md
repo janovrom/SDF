@@ -17,6 +17,6 @@ Each of the deferred shading passes consists of two steps - rasterization and ra
 5. Intermediate pass
     * Display shadow maps, color, normal, depth, position textures from geometry pass and show noise texture
 
-More on [WIKI](http://janovrom.ddns.net/janovrom/SDF/wikis/home).
+More on [WIKI](https://github.com/janovrom/SDF/wiki).
 
-x86 binary - [DOWNLOAD](http://janovrom.ddns.net/janovrom/SDF/tags).
+x86 binary - [DOWNLOAD](https://github.com/janovrom/SDF/releases).
